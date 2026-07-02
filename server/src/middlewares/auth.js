@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { Usuario, Rol } = require('../models');
 const { unauthorized } = require('../utils/responses');
+const { cargarCachePermisos } = require('./roles');
 
 async function verificarToken(req, res, next) {
   const header = req.get('Authorization') || '';
@@ -9,6 +10,8 @@ async function verificarToken(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (payload.type !== 'access') return unauthorized(res, 'Token inválido o expirado');
+
     const usuario = await Usuario.findByPk(payload.id, { include: [{ model: Rol }] });
     if (!usuario || !usuario.activo) return unauthorized(res, 'Usuario inválido');
 
@@ -23,6 +26,11 @@ async function verificarToken(req, res, next) {
       rolId: usuario.rolId,
       nivelRol: usuario.Rol.nivel,
       esAdmin: () => usuario.Rol.nombre === 'admin',
+      tienePermiso: async (modulo, accion) => {
+        const permisos = await cargarCachePermisos();
+        const acciones = permisos[usuario.rolId]?.[modulo] || [];
+        return acciones.includes(accion);
+      },
     };
     return next();
   } catch {
