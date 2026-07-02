@@ -21,14 +21,36 @@ function error(res, message, statusCode = 400, errors = null, code = null) {
   return res.status(statusCode).json({ success: false, data: null, message, errors: errors || [], code });
 }
 
-const unauthorized = (res, message = 'No autorizado') => error(res, message, 401);
-const forbidden = (res, message = 'Prohibido') => error(res, message, 403);
-const notFound = (res, message = 'No encontrado') => error(res, message, 404);
-const badRequest = (res, message = 'Solicitud inválida') => error(res, message, 400);
-const conflict = (res, message = 'Conflicto') => error(res, message, 409);
-const unprocessable = (res, message = 'Regla de negocio violada') => error(res, message, 422);
-const serverError = (res, message = 'Error interno', errorObj = null) => {
+function logError(errorObj) {
   if (errorObj) console.error(errorObj);
+}
+
+const unauthorized = (res, message = 'No autorizado', errorObj = null) => {
+  logError(errorObj);
+  return error(res, message, 401);
+};
+const forbidden = (res, message = 'Prohibido', errorObj = null) => {
+  logError(errorObj);
+  return error(res, message, 403);
+};
+const notFound = (res, message = 'No encontrado', errorObj = null) => {
+  logError(errorObj);
+  return error(res, message, 404);
+};
+const badRequest = (res, message = 'Solicitud inválida', errorObj = null) => {
+  logError(errorObj);
+  return error(res, message, 400);
+};
+const conflict = (res, message = 'Conflicto', errorObj = null) => {
+  logError(errorObj);
+  return error(res, message, 409);
+};
+const unprocessable = (res, message = 'Regla de negocio violada', errorObj = null) => {
+  logError(errorObj);
+  return error(res, message, 422);
+};
+const serverError = (res, message = 'Error interno', errorObj = null) => {
+  logError(errorObj);
   return error(res, message, 500);
 };
 
