@@ -10,6 +10,7 @@ const Carpeta = require('./Carpeta')(sequelize);
 const TipoDocumento = require('./TipoDocumento')(sequelize);
 const Documento = require('./Documento')(sequelize);
 const DocumentoVersionHistorial = require('./DocumentoVersionHistorial')(sequelize);
+const PlantillaFormulario = require('./PlantillaFormulario')(sequelize);
 
 Rol.hasMany(Usuario, { foreignKey: 'rolId' });
 Usuario.belongsTo(Rol, { foreignKey: 'rolId' });
@@ -29,7 +30,10 @@ Documento.belongsTo(TipoDocumento, { foreignKey: 'tipoDocumentoId' });
 Documento.hasMany(DocumentoVersionHistorial, { foreignKey: 'documentoId' });
 DocumentoVersionHistorial.belongsTo(Documento, { foreignKey: 'documentoId' });
 
+Area.hasMany(PlantillaFormulario, { foreignKey: 'areaId' });
+PlantillaFormulario.belongsTo(Area, { foreignKey: 'areaId' });
+
 module.exports = {
   sequelize, Usuario, Rol, Permiso, RolPermiso, Auditoria,
-  Area, Carpeta, TipoDocumento, Documento, DocumentoVersionHistorial,
+  Area, Carpeta, TipoDocumento, Documento, DocumentoVersionHistorial, PlantillaFormulario,
 };
