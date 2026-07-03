@@ -80,10 +80,16 @@ if (require.main === module) {
   initializeDatabase()
     .then(() => {
       app.listen(PORT, () => {
+        const entorno = process.env.NODE_ENV || 'development';
+        const baseUrl = process.env.APP_URL || (entorno !== 'production' ? `http://localhost:${PORT}` : null);
         console.log('');
-        console.log(`COD API lista — entorno: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`  → http://localhost:${PORT}/health`);
-        console.log(`  → http://localhost:${PORT}/api/v1`);
+        console.log(`COD API lista — entorno: ${entorno}`);
+        if (baseUrl) {
+          console.log(`  → ${baseUrl}/health`);
+          console.log(`  → ${baseUrl}/api/v1`);
+        } else {
+          console.log(`  → escuchando en el puerto ${PORT} (defina APP_URL para mostrar la URL pública aquí)`);
+        }
         console.log('');
       });
     })
