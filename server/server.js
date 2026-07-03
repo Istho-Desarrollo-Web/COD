@@ -63,9 +63,12 @@ app.use((err, req, res, next) => {
 });
 
 async function initializeDatabase() {
+  console.log('Conectando a la base de datos...');
   await connectWithRetry(sequelize);
+  console.log('Conexión establecida. Ejecutando migraciones pendientes...');
   const migrator = createMigrator(sequelize);
   await migrator.up();
+  console.log('Sembrando catálogos base (roles, tipos de documento, niveles de aprobación, requisitos de proveedor)...');
   await require('./src/scripts/seedRolesPermisos')();
   await require('./src/scripts/seedTiposDocumento')();
   await require('./src/scripts/seedNivelesAprobacion')();
@@ -76,7 +79,13 @@ if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   initializeDatabase()
     .then(() => {
-      app.listen(PORT, () => console.log(`COD API escuchando en puerto ${PORT}`));
+      app.listen(PORT, () => {
+        console.log('');
+        console.log(`COD API lista — entorno: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`  → http://localhost:${PORT}/health`);
+        console.log(`  → http://localhost:${PORT}/api/v1`);
+        console.log('');
+      });
     })
     .catch((err) => {
       console.error('Error inicializando la base de datos:', err);
