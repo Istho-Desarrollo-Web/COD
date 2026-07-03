@@ -8,6 +8,14 @@ let area;
 let carpeta;
 let tipo;
 
+// Returns a YYYY-MM-DD date `dias` days from now, so date-dependent assertions
+// (e.g. 'por_vencer' status) stay true regardless of when the suite runs,
+// instead of relying on a hardcoded date that eventually falls into the past.
+function fechaEnDias(dias) {
+  const fecha = new Date(Date.now() + dias * 24 * 60 * 60 * 1000);
+  return fecha.toISOString().slice(0, 10);
+}
+
 beforeAll(async () => {
   await sequelize.authenticate();
   await createMigrator(sequelize).up();
@@ -35,7 +43,10 @@ describe('Documento + DocumentoVersionHistorial', () => {
     });
 
     await subirNuevaVersion(documento.id, {
-      version: 'v2', s3Key: 'documentos/1/v2.pdf', vigenciaDesde: '2026-07-01', vigenciaHasta: '2026-07-10',
+      // 'Procedimiento' has a 30-day default alert window (see seedTiposDocumento.js);
+      // 12 days out lands comfortably inside that window (por_vencer) without
+      // sitting near the 0-day (vencido) or 30-day (vigente) boundaries.
+      version: 'v2', s3Key: 'documentos/1/v2.pdf', vigenciaDesde: '2026-07-01', vigenciaHasta: fechaEnDias(12),
     });
 
     const actualizado = await Documento.findByPk(documento.id);
