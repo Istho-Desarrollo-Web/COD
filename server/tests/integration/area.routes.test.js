@@ -34,4 +34,29 @@ describe('Areas API', () => {
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.some((a) => a.codigo === uniqueCode)).toBe(true);
   });
+
+  it('returns 409 (not a hang) when codigo already exists', async () => {
+    const uniqueCode = `DUP${Date.now()}`;
+    const first = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nombre: 'Duplicada', codigo: uniqueCode });
+    expect(first.status).toBe(201);
+
+    const second = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nombre: 'Duplicada Otra Vez', codigo: uniqueCode });
+    expect(second.status).toBe(409);
+    expect(second.body.success).toBe(false);
+  });
+
+  it('returns 400 when nombre is missing', async () => {
+    const res = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ codigo: `NOM${Date.now()}` });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
 });

@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const { sequelize, connectWithRetry } = require('./src/config/database');
 const { createMigrator } = require('./src/config/migrator');
+const { error, conflict, serverError } = require('./src/utils/responses');
 
 function validateEnv() {
   const isProduccion = process.env.NODE_ENV === 'production';
@@ -47,6 +48,19 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api/v1', require('./src/routes'));
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.name === 'SequelizeUniqueConstraintError') {
+    return conflict(res, 'El registro ya existe', err);
+  }
+  if (err.name === 'SequelizeValidationError') {
+    console.error(err);
+    const errors = (err.errors || []).map((e) => e.message);
+    return error(res, 'Datos inválidos', 400, errors);
+  }
+  return serverError(res, 'Error interno', err);
+});
 
 async function initializeDatabase() {
   await connectWithRetry(sequelize);
