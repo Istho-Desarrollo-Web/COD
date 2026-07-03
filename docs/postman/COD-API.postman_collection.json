@@ -1,0 +1,287 @@
+{
+  "info": {
+    "name": "COD API — Centro Operativo Documental",
+    "_postman_id": "8f5e2b1a-6c3d-4b9a-9f1e-cod-api-collection",
+    "description": "Colección para el backend de COD (ISTHO S.A.S.). Cubre los endpoints implementados hasta la fecha: salud del servicio, autenticación y Áreas. El resto del modelo de dominio (Documentos, Solicitudes, Proveedores, etc.) ya existe a nivel de datos pero aún no tiene controladores/rutas expuestos — se agregará a esta colección a medida que se implementen.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "area_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Salud del servicio",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "No requiere autenticación. Reporta el entorno, timestamp, y estado de conexión a la base de datos."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"environment\": \"development\",\n  \"timestamp\": \"2026-07-03T15:00:00.000Z\",\n  \"database\": \"connected\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "POST /api/v1/auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json().data;",
+                  "    pm.collectionVariables.set('token', data.token);",
+                  "    pm.collectionVariables.set('refresh_token', data.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"CambiarAhora123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Autentica un usuario y devuelve access token + refresh token. Limitado a 10 intentos / 15 min por IP (express-rate-limit). El script de test de esta request guarda automáticamente `token` y `refresh_token` como variables de colección para las siguientes peticiones."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/auth/login" } },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIs...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIs...\",\n    \"usuario\": { \"id\": 1, \"username\": \"admin\", \"nombre\": \"Administrador\", \"rol\": \"admin\" }\n  },\n  \"message\": null,\n  \"errors\": [],\n  \"code\": null\n}"
+            },
+            {
+              "name": "401 credenciales incorrectas",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/auth/login" } },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"data\": null,\n  \"message\": \"Usuario o contraseña incorrectos\",\n  \"errors\": [],\n  \"code\": null\n}"
+            },
+            {
+              "name": "429 demasiados intentos",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/auth/login" } },
+              "status": "Too Many Requests",
+              "code": 429,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"data\": null,\n  \"message\": \"Demasiados intentos de inicio de sesión. Intente de nuevo más tarde.\",\n  \"errors\": [],\n  \"code\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /api/v1/auth/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Requiere Bearer token (access, no refresh). Devuelve el perfil del usuario autenticado."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/auth/me" } },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"admin\",\n    \"email\": \"admin@istho.com.co\",\n    \"nombre\": \"Administrador\",\n    \"apellido\": \"COD\",\n    \"nombreCompleto\": \"Administrador COD\",\n    \"rol\": \"admin\",\n    \"rolId\": 1,\n    \"nivelRol\": 100\n  },\n  \"message\": null,\n  \"errors\": [],\n  \"code\": null\n}"
+            },
+            {
+              "name": "401 sin token",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/auth/me" } },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"data\": null,\n  \"message\": \"Token no proporcionado\",\n  \"errors\": [],\n  \"code\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Áreas",
+      "item": [
+        {
+          "name": "GET /api/v1/areas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/areas",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "areas"]
+            },
+            "description": "Requiere permiso `areas.ver`. Lista las áreas activas ordenadas por nombre."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/areas" } },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"nombre\": \"Financiera\",\n      \"codigo\": \"FIN\",\n      \"liderUsuarioId\": null,\n      \"saludDocumentalPct\": \"100.0\",\n      \"activo\": true,\n      \"createdAt\": \"2026-07-03T15:00:00.000Z\",\n      \"updatedAt\": \"2026-07-03T15:00:00.000Z\"\n    }\n  ],\n  \"message\": null,\n  \"errors\": [],\n  \"code\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /api/v1/areas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('area_id', pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Financiera\",\n  \"codigo\": \"FIN\",\n  \"liderUsuarioId\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/areas",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "areas"]
+            },
+            "description": "Requiere rol admin (creación de áreas es una operación administrativa, no cubierta por el permiso `areas.ver`). `codigo` es único. El script de test guarda `area_id` para la request de detalle."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/areas" } },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"nombre\": \"Financiera\",\n    \"codigo\": \"FIN\",\n    \"liderUsuarioId\": null,\n    \"saludDocumentalPct\": \"100.0\",\n    \"activo\": true,\n    \"createdAt\": \"2026-07-03T15:00:00.000Z\",\n    \"updatedAt\": \"2026-07-03T15:00:00.000Z\"\n  },\n  \"message\": \"Área creada\",\n  \"errors\": [],\n  \"code\": null\n}"
+            },
+            {
+              "name": "403 sin rol admin",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/areas" } },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"data\": null,\n  \"message\": \"Nivel de rol insuficiente\",\n  \"errors\": [],\n  \"code\": null\n}"
+            },
+            {
+              "name": "409 código duplicado",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/areas" } },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"data\": null,\n  \"message\": \"El registro ya existe\",\n  \"errors\": [],\n  \"code\": null\n}"
+            },
+            {
+              "name": "400 datos inválidos",
+              "originalRequest": { "method": "POST", "url": { "raw": "{{base_url}}/api/v1/areas" } },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"data\": null,\n  \"message\": \"Datos inválidos\",\n  \"errors\": [\"El campo nombre no puede estar vacío\"],\n  \"code\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /api/v1/areas/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/areas/{{area_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "areas", "{{area_id}}"]
+            },
+            "description": "Requiere permiso `areas.ver`. `{{area_id}}` se llena automáticamente tras ejecutar POST /api/v1/areas, o edítala manualmente."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/areas/1" } },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"nombre\": \"Financiera\",\n    \"codigo\": \"FIN\",\n    \"liderUsuarioId\": null,\n    \"saludDocumentalPct\": \"100.0\",\n    \"activo\": true,\n    \"createdAt\": \"2026-07-03T15:00:00.000Z\",\n    \"updatedAt\": \"2026-07-03T15:00:00.000Z\"\n  },\n  \"message\": null,\n  \"errors\": [],\n  \"code\": null\n}"
+            },
+            {
+              "name": "404 no encontrada",
+              "originalRequest": { "method": "GET", "url": { "raw": "{{base_url}}/api/v1/areas/999999" } },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"data\": null,\n  \"message\": \"Área no encontrada\",\n  \"errors\": [],\n  \"code\": null\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
