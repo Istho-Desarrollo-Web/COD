@@ -1,5 +1,6 @@
 const { RolPermiso } = require('../models');
 const { forbidden } = require('../utils/responses');
+const asyncHandler = require('../utils/asyncHandler');
 
 const CACHE_TTL_MS = 60 * 1000;
 let cache = null;
@@ -24,23 +25,23 @@ function invalidarCachePermisos() {
 }
 
 function requierePermiso(modulo, accion) {
-  return async (req, res, next) => {
+  return asyncHandler(async (req, res, next) => {
     const permisos = await cargarCachePermisos();
     const acciones = permisos[req.user?.rolId]?.[modulo] || [];
     if (!acciones.includes(accion)) return forbidden(res, 'Sin permisos para esta acción');
     return next();
-  };
+  });
 }
 
 function requiereRolMinimo(nombreRolMinimo) {
   const { ROLES_NIVEL } = require('./rolesNivelCache');
-  return async (req, res, next) => {
+  return asyncHandler(async (req, res, next) => {
     const niveles = await ROLES_NIVEL();
     if ((req.user?.nivelRol || 0) < (niveles[nombreRolMinimo] || Infinity)) {
       return forbidden(res, 'Nivel de rol insuficiente');
     }
     return next();
-  };
+  });
 }
 
 const soloAdmin = requiereRolMinimo('admin');

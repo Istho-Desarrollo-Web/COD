@@ -2,6 +2,8 @@ const request = require('supertest');
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
 const seedRolesPermisos = require('../../src/scripts/seedRolesPermisos');
+const { RolPermiso } = require('../../src/models');
+const { invalidarCachePermisos } = require('../../src/middlewares/roles');
 const { app } = require('../../server');
 
 let token;
@@ -58,5 +60,18 @@ describe('Areas API', () => {
       .send({ codigo: `NOM${Date.now()}` });
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
+  });
+
+  it('returns 500 (not a hang) when the permission cache refill rejects (simulated DB blip)', async () => {
+    invalidarCachePermisos();
+    const spy = jest.spyOn(RolPermiso, 'findAll').mockRejectedValueOnce(new Error('conexión perdida con la base de datos'));
+
+    const res = await request(app).get('/api/v1/areas').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(500);
+    expect(res.body.success).toBe(false);
+
+    spy.mockRestore();
+    invalidarCachePermisos();
   });
 });

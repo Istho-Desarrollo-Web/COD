@@ -51,6 +51,8 @@ TipoSolicitud.hasMany(Solicitud, { foreignKey: 'tipoSolicitudId' });
 Solicitud.belongsTo(TipoSolicitud, { foreignKey: 'tipoSolicitudId' });
 Solicitud.hasMany(Cotizacion, { foreignKey: 'solicitudId' });
 Cotizacion.belongsTo(Solicitud, { foreignKey: 'solicitudId' });
+Proveedor.hasMany(Cotizacion, { foreignKey: 'proveedorId' });
+Cotizacion.belongsTo(Proveedor, { foreignKey: 'proveedorId' });
 Solicitud.hasMany(SolicitudAprobacion, { foreignKey: 'solicitudId' });
 SolicitudAprobacion.belongsTo(Solicitud, { foreignKey: 'solicitudId' });
 SolicitudAprobacion.belongsTo(NivelAprobacion, { foreignKey: 'nivelAprobacionId' });
