@@ -1,12 +1,14 @@
 const request = require('supertest');
+const bcrypt = require('bcryptjs');
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
 const seedRolesPermisos = require('../../src/scripts/seedRolesPermisos');
-const { RolPermiso } = require('../../src/models');
+const { RolPermiso, Usuario, Rol } = require('../../src/models');
 const { invalidarCachePermisos } = require('../../src/middlewares/roles');
 const { app } = require('../../server');
 
 let token;
+let solicitanteToken;
 
 beforeAll(async () => {
   await sequelize.authenticate();
@@ -16,6 +18,21 @@ beforeAll(async () => {
     .post('/api/v1/auth/login')
     .send({ username: 'admin', password: process.env.SEED_PASSWORD_ADMIN || 'CambiarAhora123!' });
   token = res.body.data.token;
+
+  const solicitanteRol = await Rol.findOne({ where: { nombre: 'solicitante' } });
+  const solicitanteUsername = `solicitante_test_${Date.now()}`;
+  await Usuario.create({
+    username: solicitanteUsername,
+    email: `${solicitanteUsername}@istho.com.co`,
+    passwordHash: await bcrypt.hash('ClaveSolicitante123!', 10),
+    nombre: 'Solicitante',
+    apellido: 'Prueba',
+    rolId: solicitanteRol.id,
+  });
+  const loginRes = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ username: solicitanteUsername, password: 'ClaveSolicitante123!' });
+  solicitanteToken = loginRes.body.data.token;
 });
 
 afterAll(async () => {
@@ -59,6 +76,15 @@ describe('Areas API', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ codigo: `NOM${Date.now()}` });
     expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('returns 403 when a non-admin role with areas.ver tries to create an area', async () => {
+    const res = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${solicitanteToken}`)
+      .send({ nombre: 'No debería crearse', codigo: `NOPE${Date.now()}` });
+    expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
   });
 
