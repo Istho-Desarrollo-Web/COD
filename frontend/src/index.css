@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+@variant dark (&:is(.dark *));
+
+@theme {
+  --color-orange-50: #fef2f2;
+  --color-orange-100: #fee2e2;
+  --color-orange-200: #fecaca;
+  --color-orange-300: #fca5a5;
+  --color-orange-400: #f87171;
+  --color-orange-500: #e74c3c;
+  --color-orange-600: #e74c3c;
+  --color-orange-700: #c0392b;
+  --color-orange-800: #991b1b;
+  --color-orange-900: #7f1d1d;
+
+  --color-centhrix-accent: #e74c3c;
+  --color-centhrix-accent-hover: #c0392b;
+  --color-centhrix-bg: #0f1023;
+  --color-centhrix-surface: #151631;
+  --color-centhrix-card: #1a1b3a;
+
+  --font-display: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+  font-family:
+    'Segoe UI',
+    Calibri,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  background-color: #0f1023;
+  color: #f0f0f5;
+}
