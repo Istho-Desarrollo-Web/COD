@@ -1,5 +1,6 @@
 .claude/
 node_modules/
+.worktrees/
 
 # Server
 
