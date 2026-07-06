@@ -49,6 +49,38 @@ describe('POST /api/v1/auth/login', () => {
   });
 });
 
+describe('POST /api/v1/auth/refresh', () => {
+  it('returns a new token pair for a valid refresh token', async () => {
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ username: 'admin', password: process.env.SEED_PASSWORD_ADMIN || 'CambiarAhora123!' });
+    const { refreshToken } = loginRes.body.data;
+
+    const res = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.token).toEqual(expect.any(String));
+    expect(res.body.data.refreshToken).toEqual(expect.any(String));
+  });
+
+  it('rejects an access token used as a refresh token with 401', async () => {
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ username: 'admin', password: process.env.SEED_PASSWORD_ADMIN || 'CambiarAhora123!' });
+    const { token } = loginRes.body.data;
+
+    const res = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: token });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('rejects a missing refreshToken with 401', async () => {
+    const res = await request(app).post('/api/v1/auth/refresh').send({});
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('protected routes', () => {
   let token;
   let refreshToken;

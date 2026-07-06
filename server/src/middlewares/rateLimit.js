@@ -14,4 +14,14 @@ const loginLimiter = rateLimit({
   },
 });
 
-module.exports = { loginLimiter };
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    error(res, 'Demasiadas solicitudes de renovación de token. Intente nuevamente más tarde.', 429);
+  },
+});
+
+module.exports = { loginLimiter, refreshLimiter };

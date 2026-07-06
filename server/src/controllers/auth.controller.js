@@ -1,4 +1,4 @@
-const { autenticar, firmarTokens } = require('../services/auth.service');
+const { autenticar, firmarTokens, refrescarToken } = require('../services/auth.service');
 const { Auditoria, Usuario, Rol } = require('../models');
 const { success, unauthorized } = require('../utils/responses');
 
@@ -29,4 +29,15 @@ async function me(req, res) {
   return success(res, req.user);
 }
 
-module.exports = { login, me };
+async function refresh(req, res) {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return unauthorized(res, 'Refresh token no proporcionado');
+
+  const usuario = await refrescarToken(refreshToken);
+  if (!usuario) return unauthorized(res, 'Refresh token inválido o expirado');
+
+  const tokens = firmarTokens(usuario);
+  return success(res, tokens);
+}
+
+module.exports = { login, me, refresh };

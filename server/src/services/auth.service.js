@@ -23,4 +23,18 @@ function firmarTokens(usuario) {
   return { token, refreshToken };
 }
 
-module.exports = { autenticar, firmarTokens };
+async function refrescarToken(refreshTokenRecibido) {
+  let payload;
+  try {
+    payload = jwt.verify(refreshTokenRecibido, process.env.JWT_SECRET);
+  } catch {
+    return null;
+  }
+  if (payload.type !== 'refresh') return null;
+
+  const usuario = await Usuario.unscoped().findOne({ where: { id: payload.id }, include: [{ model: Rol }] });
+  if (!usuario || !usuario.activo) return null;
+  return usuario;
+}
+
+module.exports = { autenticar, firmarTokens, refrescarToken };
