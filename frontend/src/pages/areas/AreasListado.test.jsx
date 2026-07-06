@@ -76,4 +76,31 @@ describe('AreasListado', () => {
 
     expect(screen.getByText('30.0% al día')).toBeInTheDocument();
   });
+
+  it('shows the empty state instead of hanging when loading areas fails', async () => {
+    useAuth.mockReturnValue({ isAdmin: false });
+    areaService.listar.mockRejectedValue(new Error('Network error'));
+    renderPagina();
+
+    expect(await screen.findByText('Sin áreas todavía')).toBeInTheDocument();
+    expect(await screen.findByText('Network error')).toBeInTheDocument();
+  });
+
+  it('shows an error and keeps the modal open when creating an area fails', async () => {
+    useAuth.mockReturnValue({ isAdmin: true });
+    areaService.listar.mockResolvedValue([]);
+    areaService.crear.mockRejectedValue(new Error('El código ya existe'));
+    renderPagina();
+
+    await screen.findByText('Sin áreas todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear área/i }));
+
+    await userEvent.type(screen.getByLabelText('Nombre'), 'SGI');
+    await userEvent.type(screen.getByLabelText('Código'), 'SGI');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    expect(await screen.findByText('El código ya existe')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nombre')).toHaveValue('SGI');
+    expect(screen.getByLabelText('Código')).toHaveValue('SGI');
+  });
 });

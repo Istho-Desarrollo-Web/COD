@@ -51,9 +51,15 @@ export default function AreasListado() {
 
   async function cargarAreas() {
     setCargando(true);
-    const data = await areaService.listar();
-    setAreas(data);
-    setCargando(false);
+    try {
+      const data = await areaService.listar();
+      setAreas(data);
+    } catch (error) {
+      setAreas([]);
+      enqueueSnackbar(error?.message || 'No se pudieron cargar las áreas', { variant: 'error' });
+    } finally {
+      setCargando(false);
+    }
   }
 
   useEffect(() => {
@@ -61,11 +67,15 @@ export default function AreasListado() {
   }, []);
 
   async function onCrear({ nombre, codigo }) {
-    await areaService.crear({ nombre, codigo });
-    enqueueSnackbar('Área creada exitosamente', { variant: 'success' });
-    reset();
-    setModalAbierto(false);
-    await cargarAreas();
+    try {
+      await areaService.crear({ nombre, codigo });
+      enqueueSnackbar('Área creada exitosamente', { variant: 'success' });
+      reset();
+      setModalAbierto(false);
+      await cargarAreas();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo crear el área', { variant: 'error' });
+    }
   }
 
   const columnas = [
