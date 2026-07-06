@@ -1,6 +1,7 @@
 const { autenticar, firmarTokens, refrescarToken } = require('../services/auth.service');
 const { Auditoria, Usuario, Rol } = require('../models');
 const { success, unauthorized } = require('../utils/responses');
+const { obtenerPermisosDeRol } = require('../middlewares/roles');
 
 async function login(req, res) {
   const { username, password } = req.body;
@@ -18,15 +19,19 @@ async function login(req, res) {
     userAgent: req.get('User-Agent'),
   });
 
+  const permisos = await obtenerPermisosDeRol(usuario.rolId);
+
   return success(res, {
     token,
     refreshToken,
     usuario: { id: usuario.id, username: usuario.username, nombre: usuario.nombre, rol: usuario.Rol.nombre },
+    permisos,
   });
 }
 
 async function me(req, res) {
-  return success(res, req.user);
+  const permisos = await obtenerPermisosDeRol(req.user.rolId);
+  return success(res, { ...req.user, permisos });
 }
 
 async function refresh(req, res) {

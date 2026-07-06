@@ -150,3 +150,19 @@ describe('req.user.tienePermiso', () => {
     await expect(req.user.tienePermiso('documentos', 'accion_inexistente')).resolves.toBe(false);
   });
 });
+
+describe('permisos map on login and me', () => {
+  it('includes the admin permisos map on login and on /me', async () => {
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ username: 'admin', password: process.env.SEED_PASSWORD_ADMIN || 'CambiarAhora123!' });
+
+    expect(loginRes.body.data.permisos.areas).toContain('ver');
+
+    const meRes = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${loginRes.body.data.token}`);
+
+    expect(meRes.body.data.permisos.areas).toContain('ver');
+  });
+});

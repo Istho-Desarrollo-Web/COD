@@ -46,4 +46,9 @@ function requiereRolMinimo(nombreRolMinimo) {
 
 const soloAdmin = requiereRolMinimo('admin');
 
-module.exports = { requierePermiso, requiereRolMinimo, soloAdmin, cargarCachePermisos, invalidarCachePermisos };
+async function obtenerPermisosDeRol(rolId) {
+  const permisos = await cargarCachePermisos();
+  return permisos[rolId] || {};
+}
+
+module.exports = { requierePermiso, requiereRolMinimo, soloAdmin, cargarCachePermisos, invalidarCachePermisos, obtenerPermisosDeRol };
