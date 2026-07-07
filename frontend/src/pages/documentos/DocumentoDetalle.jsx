@@ -12,6 +12,9 @@ import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
 import StatusChip from '../../components/common/StatusChip/StatusChip';
+import { validarArchivo, TIPOS_PERMITIDOS } from '../../utils/validarArchivo';
+
+const TIPOS_PERMITIDOS_ACCEPT = [...TIPOS_PERMITIDOS].join(',');
 
 export default function DocumentoDetalle() {
   const { id } = useParams();
@@ -30,6 +33,63 @@ export default function DocumentoDetalle() {
     setValue,
     formState: { errors },
   } = useForm();
+
+  const [tabActiva, setTabActiva] = useState('detalle');
+  const [versiones, setVersiones] = useState([]);
+  const [archivoVersionError, setArchivoVersionError] = useState(null);
+  const {
+    register: registerVersion,
+    handleSubmit: handleSubmitVersion,
+    reset: resetVersion,
+  } = useForm();
+
+  async function cargarVersiones() {
+    try {
+      const data = await documentoService.listarVersiones(id);
+      setVersiones(data);
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo cargar el historial de versiones', { variant: 'error' });
+    }
+  }
+
+  useEffect(() => {
+    cargarVersiones();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function onSubirVersion(valores) {
+    const archivo = valores.archivo?.[0];
+    const errorArchivo = validarArchivo(archivo);
+    if (errorArchivo) {
+      setArchivoVersionError(errorArchivo);
+      return;
+    }
+    setArchivoVersionError(null);
+
+    const formData = new FormData();
+    formData.append('version', valores.version);
+    if (valores.vigenciaDesde) formData.append('vigenciaDesde', valores.vigenciaDesde);
+    if (valores.vigenciaHasta) formData.append('vigenciaHasta', valores.vigenciaHasta);
+    formData.append('archivo', archivo);
+
+    try {
+      await documentoService.subirVersion(id, formData);
+      enqueueSnackbar('Nueva versión subida', { variant: 'success' });
+      resetVersion();
+      setArchivoVersionError(null);
+      await Promise.all([cargarDocumento(), cargarVersiones()]);
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo subir la nueva versión', { variant: 'error' });
+    }
+  }
+
+  async function onDescargarVersion(versionId) {
+    try {
+      await documentoService.descargarVersion(id, versionId);
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo descargar la versión', { variant: 'error' });
+    }
+  }
 
   async function cargarDocumento() {
     setCargando(true);
@@ -171,63 +231,129 @@ export default function DocumentoDetalle() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-centhrix-card rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
-        <form className="space-y-4">
-          <Input label="Nombre *" error={errors.nombre?.message} {...register('nombre', { required: 'El nombre es obligatorio' })} disabled={!tienePermiso('documentos', 'editar')} />
-          <Input label="Código" {...register('codigo')} disabled={!tienePermiso('documentos', 'editar')} />
+      <div className="bg-white dark:bg-centhrix-card rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+        <div role="tablist" aria-label="Secciones del documento" className="flex border-b border-gray-100 dark:border-slate-700">
+          <button
+            role="tab"
+            aria-selected={tabActiva === 'detalle'}
+            onClick={() => setTabActiva('detalle')}
+            className={`px-6 py-4 text-sm font-medium ${tabActiva === 'detalle' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}
+          >
+            Detalle
+          </button>
+          <button
+            role="tab"
+            aria-selected={tabActiva === 'historial'}
+            onClick={() => setTabActiva('historial')}
+            className={`px-6 py-4 text-sm font-medium ${tabActiva === 'historial' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}
+          >
+            Historial de versiones
+          </button>
+        </div>
 
-          <div>
-            <label htmlFor="detalle-tipoDocumentoId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-              Tipo de documento
-            </label>
-            <select
-              id="detalle-tipoDocumentoId"
-              disabled={!tienePermiso('documentos', 'editar')}
-              className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
-              {...register('tipoDocumentoId')}
-            >
-              {tipos.map((tipo) => (
-                <option key={tipo.id} value={tipo.id}>
-                  {tipo.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="p-6">
+          {tabActiva === 'detalle' && (
+            <form className="space-y-4">
+              <Input label="Nombre *" error={errors.nombre?.message} {...register('nombre', { required: 'El nombre es obligatorio' })} disabled={!tienePermiso('documentos', 'editar')} />
+              <Input label="Código" {...register('codigo')} disabled={!tienePermiso('documentos', 'editar')} />
 
-          <div>
-            <label htmlFor="detalle-carpetaId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-              Carpeta
-            </label>
-            <select
-              id="detalle-carpetaId"
-              disabled={!tienePermiso('documentos', 'editar')}
-              className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
-              {...register('carpetaId')}
-            >
-              {carpetas.map((carpeta) => (
-                <option key={carpeta.id} value={carpeta.id}>
-                  {carpeta.ruta}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div>
+                <label htmlFor="detalle-tipoDocumentoId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                  Tipo de documento
+                </label>
+                <select
+                  id="detalle-tipoDocumentoId"
+                  disabled={!tienePermiso('documentos', 'editar')}
+                  className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
+                  {...register('tipoDocumentoId')}
+                >
+                  {tipos.map((tipo) => (
+                    <option key={tipo.id} value={tipo.id}>
+                      {tipo.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Vigencia desde" type="date" {...register('vigenciaDesde')} disabled={!tienePermiso('documentos', 'editar')} />
-            <Input label="Vigencia hasta" type="date" {...register('vigenciaHasta')} disabled={!tienePermiso('documentos', 'editar')} />
-          </div>
+              <div>
+                <label htmlFor="detalle-carpetaId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                  Carpeta
+                </label>
+                <select
+                  id="detalle-carpetaId"
+                  disabled={!tienePermiso('documentos', 'editar')}
+                  className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
+                  {...register('carpetaId')}
+                >
+                  {carpetas.map((carpeta) => (
+                    <option key={carpeta.id} value={carpeta.id}>
+                      {carpeta.ruta}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <Input label="Días de alerta de vencimiento" type="number" {...register('diasAlertaVencimiento')} disabled={!tienePermiso('documentos', 'editar')} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Vigencia desde" type="date" {...register('vigenciaDesde')} disabled={!tienePermiso('documentos', 'editar')} />
+                <Input label="Vigencia hasta" type="date" {...register('vigenciaHasta')} disabled={!tienePermiso('documentos', 'editar')} />
+              </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            {tienePermiso('documentos', 'editar') && <Button onClick={handleSubmit(onGuardar)}>Guardar cambios</Button>}
-            {tienePermiso('documentos', 'eliminar') && (
-              <Button variant="danger" onClick={onEliminar}>
-                Eliminar
-              </Button>
-            )}
-          </div>
-        </form>
+              <Input label="Días de alerta de vencimiento" type="number" {...register('diasAlertaVencimiento')} disabled={!tienePermiso('documentos', 'editar')} />
+
+              <div className="flex items-center gap-3 pt-2">
+                {tienePermiso('documentos', 'editar') && <Button onClick={handleSubmit(onGuardar)}>Guardar cambios</Button>}
+                {tienePermiso('documentos', 'eliminar') && (
+                  <Button variant="danger" onClick={onEliminar}>
+                    Eliminar
+                  </Button>
+                )}
+              </div>
+            </form>
+          )}
+
+          {tabActiva === 'historial' && (
+            <div className="space-y-6">
+              <ul className="divide-y divide-gray-100 dark:divide-slate-700">
+                {versiones.length === 0 && <li className="py-4 text-sm text-slate-400 dark:text-slate-500">Sin versiones anteriores.</li>}
+                {versiones.map((version) => (
+                  <li key={version.id} className="py-3 flex items-center justify-between">
+                    <span className="text-sm text-slate-600 dark:text-slate-300">{version.version}</span>
+                    {tienePermiso('documentos', 'exportar') && (
+                      <Button variant="outline" size="sm" onClick={() => onDescargarVersion(version.id)}>
+                        Descargar {version.version}
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {tienePermiso('documentos', 'aprobar_version') && (
+                <form className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                  <Input label="Nueva versión *" placeholder="v2" {...registerVersion('version', { required: true })} />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input label="Vigencia desde" type="date" {...registerVersion('vigenciaDesde')} />
+                    <Input label="Vigencia hasta" type="date" {...registerVersion('vigenciaHasta')} />
+                  </div>
+
+                  <div>
+                    <label htmlFor="version-archivo" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                      Archivo *
+                    </label>
+                    <input id="version-archivo" type="file" accept={TIPOS_PERMITIDOS_ACCEPT} className="w-full text-sm" {...registerVersion('archivo', { required: true })} />
+                    {archivoVersionError && (
+                      <p role="alert" className="text-xs text-red-500 mt-1">
+                        {archivoVersionError}
+                      </p>
+                    )}
+                  </div>
+
+                  <Button onClick={handleSubmitVersion(onSubirVersion)}>Subir nueva versión</Button>
+                </form>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

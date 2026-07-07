@@ -136,4 +136,48 @@ describe('DocumentoDetalle', () => {
       expect(screen.getByLabelText('Carpeta').value).toBe('10');
     });
   });
+
+  it('shows the version history and downloads a historical version', async () => {
+    documentoService.listarVersiones.mockResolvedValue([{ id: 5, version: 'v1', createdAt: '2026-01-01T00:00:00.000Z' }]);
+    documentoService.descargarVersion.mockResolvedValue();
+    renderDetalle();
+
+    await screen.findByText('Manual RH');
+    await userEvent.click(screen.getByRole('tab', { name: 'Historial de versiones' }));
+
+    expect(await screen.findByText('v1')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Descargar v1' }));
+    await waitFor(() => expect(documentoService.descargarVersion).toHaveBeenCalledWith('1', 5));
+  });
+
+  it('uploads a new version and refreshes the document and history', async () => {
+    documentoService.listarVersiones.mockResolvedValue([]);
+    documentoService.subirVersion.mockResolvedValue({ ...DOCUMENTO, version: 'v2' });
+    renderDetalle();
+
+    await screen.findByText('Manual RH');
+    await userEvent.click(screen.getByRole('tab', { name: 'Historial de versiones' }));
+
+    await userEvent.type(screen.getByLabelText('Nueva versión *'), 'v2');
+    const archivo = new File(['contenido'], 'v2.pdf', { type: 'application/pdf' });
+    await userEvent.upload(screen.getByLabelText('Archivo *'), archivo);
+
+    documentoService.listarVersiones.mockResolvedValue([{ id: 6, version: 'v1', createdAt: '2026-01-01T00:00:00.000Z' }]);
+    await userEvent.click(screen.getByRole('button', { name: 'Subir nueva versión' }));
+
+    await waitFor(() => expect(documentoService.subirVersion).toHaveBeenCalled());
+    const formDataEnviado = documentoService.subirVersion.mock.calls[0][1];
+    expect(formDataEnviado.get('version')).toBe('v2');
+    expect(formDataEnviado.get('archivo')).toBe(archivo);
+  });
+
+  it('hides "Subir nueva versión" without the aprobar_version permission', async () => {
+    useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => accion !== 'aprobar_version' });
+    documentoService.listarVersiones.mockResolvedValue([]);
+    renderDetalle();
+
+    await screen.findByText('Manual RH');
+    await userEvent.click(screen.getByRole('tab', { name: 'Historial de versiones' }));
+    expect(screen.queryByRole('button', { name: 'Subir nueva versión' })).not.toBeInTheDocument();
+  });
 });
