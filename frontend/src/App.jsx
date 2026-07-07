@@ -9,6 +9,7 @@ import Login from './pages/auth/Login';
 import Dashboard from './pages/inicio/Dashboard';
 import AreasListado from './pages/areas/AreasListado';
 import DocumentosListado from './pages/documentos/DocumentosListado';
+import DocumentoDetalle from './pages/documentos/DocumentoDetalle';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 
 function App() {
@@ -42,6 +43,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="documentos" accion="ver">
                       <DocumentosListado />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/documentos/:id"
+                  element={
+                    <PermissionRoute modulo="documentos" accion="ver">
+                      <DocumentoDetalle />
                     </PermissionRoute>
                   }
                 />
