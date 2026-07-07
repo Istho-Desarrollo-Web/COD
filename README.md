@@ -11,6 +11,7 @@ Proveedores/Contratistas y Repositorio documental SGI.
 - Diseño del frontend (scaffold, auth, layout, Dashboard Inicio, Áreas):
   `docs/superpowers/specs/2026-07-06-cod-frontend-foundation-design.md`
 - Diseño de la API de Documentos (documentos, carpetas, tipos de documento, subida de archivos, job diario): `docs/superpowers/specs/2026-07-07-cod-documentos-api-design.md`
+- Diseño del frontend de Documentos (listado con filtros/paginación, creación con subida de archivo, detalle con edición e historial de versiones, gestión de carpetas): `docs/superpowers/specs/2026-07-07-cod-documentos-frontend-design.md`
 - Integración futura con el CRM: `docs/architecture/crm-integration.md`
 
 ## Backend (`server/`)
@@ -52,3 +53,5 @@ Tests:
 cd frontend
 npm test
 ```
+
+El módulo Documentos (`/documentos`) ya está implementado: listado con filtros (área, carpeta, tipo, estado) y paginación, creación con subida de archivo, y detalle (`/documentos/:id`) con edición de metadata, historial de versiones, subida de nueva versión, y descarga de archivos.
