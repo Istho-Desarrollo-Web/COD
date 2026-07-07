@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
+import { useForm } from 'react-hook-form';
 import { FileText } from 'lucide-react';
 import documentoService from '../../api/documento.service';
 import carpetaService from '../../api/carpeta.service';
@@ -14,6 +15,9 @@ import DataTable from '../../components/common/Table/DataTable';
 import ViewToggle from '../../components/common/ViewToggle';
 import StatusChip from '../../components/common/StatusChip/StatusChip';
 import Pagination from '../../components/common/Pagination/Pagination';
+import Input from '../../components/common/Input/Input';
+import Modal from '../../components/common/Modal/Modal';
+import { validarArchivo } from '../../utils/validarArchivo';
 
 const ESTADOS = ['vigente', 'por_vencer', 'vencido', 'sin_vigencia'];
 
@@ -63,6 +67,66 @@ export default function DocumentosListado() {
   const [carpetasModalAbierto, setCarpetasModalAbierto] = useState(false);
   const [crearModalAbierto, setCrearModalAbierto] = useState(false);
   const [filtros, setFiltros] = useState({ areaId: '', carpetaId: '', tipoDocumentoId: '', estado: '', page: 1 });
+
+  const [archivoError, setArchivoError] = useState(null);
+  const {
+    register: registerCrear,
+    handleSubmit: handleSubmitCrear,
+    reset: resetCrear,
+    watch: watchCrear,
+    formState: { errors: erroresCrear },
+  } = useForm();
+
+  const areaSeleccionadaCrear = watchCrear('areaId');
+  const [carpetasCrear, setCarpetasCrear] = useState([]);
+
+  useEffect(() => {
+    async function cargar() {
+      if (!areaSeleccionadaCrear) {
+        setCarpetasCrear([]);
+        return;
+      }
+      try {
+        const arbol = await carpetaService.listar(Number(areaSeleccionadaCrear));
+        setCarpetasCrear(aplanarCarpetas(arbol));
+      } catch {
+        setCarpetasCrear([]);
+      }
+    }
+    cargar();
+  }, [areaSeleccionadaCrear]);
+
+  async function onCrearDocumento(valores) {
+    const archivo = valores.archivo?.[0];
+    const errorArchivo = validarArchivo(archivo);
+    if (errorArchivo) {
+      setArchivoError(errorArchivo);
+      return;
+    }
+    setArchivoError(null);
+
+    const formData = new FormData();
+    formData.append('nombre', valores.nombre);
+    formData.append('areaId', valores.areaId);
+    formData.append('carpetaId', valores.carpetaId);
+    formData.append('tipoDocumentoId', valores.tipoDocumentoId);
+    if (valores.codigo) formData.append('codigo', valores.codigo);
+    if (valores.vigenciaDesde) formData.append('vigenciaDesde', valores.vigenciaDesde);
+    if (valores.vigenciaHasta) formData.append('vigenciaHasta', valores.vigenciaHasta);
+    if (valores.diasAlertaVencimiento) formData.append('diasAlertaVencimiento', valores.diasAlertaVencimiento);
+    formData.append('archivo', archivo);
+
+    try {
+      await documentoService.crear(formData);
+      enqueueSnackbar('Documento creado exitosamente', { variant: 'success' });
+      resetCrear();
+      setArchivoError(null);
+      setCrearModalAbierto(false);
+      await cargarDocumentos();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo crear el documento', { variant: 'error' });
+    }
+  }
 
   useEffect(() => {
     async function cargarCatalogos() {
@@ -257,6 +321,96 @@ export default function DocumentosListado() {
       )}
 
       <Pagination pagination={paginacion} onPageChange={(page) => setFiltros((prev) => ({ ...prev, page }))} />
+
+      <Modal
+        isOpen={crearModalAbierto}
+        onClose={() => {
+          setCrearModalAbierto(false);
+          resetCrear();
+          setArchivoError(null);
+        }}
+        title="Crear documento"
+        size="lg"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setCrearModalAbierto(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmitCrear(onCrearDocumento)}>Crear</Button>
+          </>
+        }
+      >
+        <form className="space-y-4">
+          <div>
+            <label htmlFor="crear-areaId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+              Área *
+            </label>
+            <select id="crear-areaId" className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm" {...registerCrear('areaId', { required: true })}>
+              <option value="">Selecciona un área</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="crear-carpetaId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+              Carpeta *
+            </label>
+            <select
+              id="crear-carpetaId"
+              disabled={!areaSeleccionadaCrear}
+              className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
+              {...registerCrear('carpetaId', { required: true })}
+            >
+              <option value="">Selecciona una carpeta</option>
+              {carpetasCrear.map((carpeta) => (
+                <option key={carpeta.id} value={carpeta.id}>
+                  {carpeta.ruta}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="crear-tipoDocumentoId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+              Tipo de documento *
+            </label>
+            <select id="crear-tipoDocumentoId" className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm" {...registerCrear('tipoDocumentoId', { required: true })}>
+              <option value="">Selecciona un tipo</option>
+              {tipos.map((tipo) => (
+                <option key={tipo.id} value={tipo.id}>
+                  {tipo.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input label="Nombre *" error={erroresCrear.nombre?.message} {...registerCrear('nombre', { required: 'El nombre es obligatorio' })} />
+          <Input label="Código" {...registerCrear('codigo')} />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Vigencia desde" type="date" {...registerCrear('vigenciaDesde')} />
+            <Input label="Vigencia hasta" type="date" {...registerCrear('vigenciaHasta')} />
+          </div>
+
+          <Input label="Días de alerta de vencimiento" type="number" {...registerCrear('diasAlertaVencimiento')} />
+
+          <div>
+            <label htmlFor="crear-archivo" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+              Archivo *
+            </label>
+            <input id="crear-archivo" type="file" className="w-full text-sm" {...registerCrear('archivo', { required: true })} />
+            {archivoError && (
+              <p role="alert" className="text-xs text-red-500 mt-1">
+                {archivoError}
+              </p>
+            )}
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

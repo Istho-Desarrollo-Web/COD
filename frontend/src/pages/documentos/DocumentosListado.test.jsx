@@ -33,6 +33,7 @@ function renderPagina() {
 
 describe('DocumentosListado', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     window.innerWidth = 1280;
     useAuth.mockReturnValue({ tienePermiso: () => false });
@@ -114,5 +115,57 @@ describe('DocumentosListado', () => {
     renderPagina();
     expect(await screen.findByText('Sin documentos todavía')).toBeInTheDocument();
     expect(await screen.findByText('Network error')).toBeInTheDocument();
+  });
+
+  it('creates a documento with the uploaded file and reloads the list', async () => {
+    useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'documentos' && accion === 'crear' });
+    documentoService.crear.mockResolvedValue({ id: 2, nombre: 'Política SST' });
+    renderPagina();
+
+    await screen.findByText('Manual RH');
+    await userEvent.click(screen.getByRole('button', { name: /crear documento/i }));
+
+    await userEvent.selectOptions(screen.getByLabelText('Área *'), '1');
+    await waitFor(() => expect(carpetaService.listar).toHaveBeenCalledWith(1));
+    await userEvent.selectOptions(screen.getByLabelText('Carpeta *'), '10');
+    await userEvent.selectOptions(screen.getByLabelText('Tipo de documento *'), '1');
+    await userEvent.type(screen.getByLabelText('Nombre *'), 'Política SST');
+
+    const archivo = new File(['contenido'], 'politica.pdf', { type: 'application/pdf' });
+    await userEvent.upload(screen.getByLabelText('Archivo *'), archivo);
+
+    documentoService.listar.mockResolvedValue({
+      data: [...DOCUMENTOS, { id: 2, nombre: 'Política SST', areaId: 1, carpetaId: 10, tipoDocumentoId: 1, estado: 'sin_vigencia' }],
+      pagination: PAGINACION,
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() => expect(documentoService.crear).toHaveBeenCalled());
+    const formDataEnviado = documentoService.crear.mock.calls[0][0];
+    expect(formDataEnviado.get('nombre')).toBe('Política SST');
+    expect(formDataEnviado.get('areaId')).toBe('1');
+    expect(formDataEnviado.get('carpetaId')).toBe('10');
+    expect(formDataEnviado.get('tipoDocumentoId')).toBe('1');
+    expect(formDataEnviado.get('archivo')).toBe(archivo);
+    expect(await screen.findByText('Documento creado exitosamente')).toBeInTheDocument();
+  });
+
+  it('rejects an invalid file before submitting', async () => {
+    useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'documentos' && accion === 'crear' });
+    renderPagina();
+
+    await screen.findByText('Manual RH');
+    await userEvent.click(screen.getByRole('button', { name: /crear documento/i }));
+    await userEvent.selectOptions(screen.getByLabelText('Área *'), '1');
+    await userEvent.selectOptions(screen.getByLabelText('Carpeta *'), '10');
+    await userEvent.selectOptions(screen.getByLabelText('Tipo de documento *'), '1');
+    await userEvent.type(screen.getByLabelText('Nombre *'), 'Política SST');
+
+    const archivoInvalido = new File(['contenido'], 'virus.exe', { type: 'application/x-msdownload' });
+    await userEvent.upload(screen.getByLabelText('Archivo *'), archivoInvalido);
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    expect(await screen.findByText('Tipo de archivo no permitido')).toBeInTheDocument();
+    expect(documentoService.crear).not.toHaveBeenCalled();
   });
 });
