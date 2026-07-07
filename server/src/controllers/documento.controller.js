@@ -1,6 +1,6 @@
-const { Documento, TipoDocumento, Carpeta, Auditoria } = require('../models');
+const { Documento, TipoDocumento, Carpeta, DocumentoVersionHistorial, Auditoria } = require('../models');
 const { success, created, paginated, notFound, badRequest } = require('../utils/responses');
-const { calcularEstadoDocumento } = require('../services/documento.service');
+const { calcularEstadoDocumento, subirNuevaVersion } = require('../services/documento.service');
 const { recalcularSaludArea } = require('../services/area.service');
 const { guardarArchivo } = require('../services/almacenamiento.service');
 
@@ -142,4 +142,45 @@ async function eliminar(req, res) {
   return success(res, null, 'Documento eliminado');
 }
 
-module.exports = { listar, obtener, crear, editar, eliminar };
+async function listarVersiones(req, res) {
+  const documento = await Documento.findByPk(req.params.id);
+  if (!documento) return notFound(res, 'Documento no encontrado');
+
+  const versiones = await DocumentoVersionHistorial.findAll({
+    where: { documentoId: documento.id },
+    order: [['createdAt', 'DESC']],
+  });
+  return success(res, versiones);
+}
+
+async function subirVersion(req, res) {
+  const documento = await Documento.findByPk(req.params.id);
+  if (!documento || !documento.activo) return notFound(res, 'Documento no encontrado');
+  if (!req.file) return badRequest(res, 'El archivo es obligatorio');
+
+  const { version, vigenciaDesde, vigenciaHasta } = req.body;
+  if (!version) return badRequest(res, 'version es obligatorio');
+  if (vigenciaDesde && vigenciaHasta && new Date(vigenciaHasta) <= new Date(vigenciaDesde)) {
+    return badRequest(res, 'vigenciaHasta debe ser posterior a vigenciaDesde');
+  }
+
+  const { ruta } = guardarArchivo(req.file, documento.areaId);
+
+  const actualizado = await subirNuevaVersion(documento.id, {
+    version,
+    s3Key: ruta,
+    vigenciaDesde: vigenciaDesde || null,
+    vigenciaHasta: vigenciaHasta || null,
+    subidoPorUsuarioId: req.user.id,
+  });
+
+  await Auditoria.registrar({
+    tabla: 'documentos', registroId: documento.id, accion: 'actualizar',
+    usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto,
+    descripcion: `Nueva versión ${version} subida`, datosNuevos: actualizado.toJSON(),
+  });
+
+  return success(res, actualizado);
+}
+
+module.exports = { listar, obtener, crear, editar, eliminar, listarVersiones, subirVersion };

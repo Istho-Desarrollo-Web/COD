@@ -297,3 +297,87 @@ describe('DELETE /api/v1/documentos/:id', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('Documento versiones', () => {
+  it('uploads a new version, updates the documento, and records history', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Con versiones')
+      .field('vigenciaHasta', '2099-01-01')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+    const s3KeyOriginal = createRes.body.data.s3Key;
+
+    const versionRes = await request(app)
+      .post(`/api/v1/documentos/${id}/versiones`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('version', 'v2')
+      .field('vigenciaHasta', '2030-06-01')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+
+    expect(versionRes.status).toBe(200);
+    expect(versionRes.body.data.version).toBe('v2');
+    expect(versionRes.body.data.s3Key).not.toBe(s3KeyOriginal);
+
+    const historialRes = await request(app)
+      .get(`/api/v1/documentos/${id}/versiones`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(historialRes.status).toBe(200);
+    expect(historialRes.body.data.some((v) => v.version === 'v1' && v.s3Key === s3KeyOriginal)).toBe(true);
+  });
+
+  it('returns 400 when the new version file is missing', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Version sin archivo')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const res = await request(app)
+      .post(`/api/v1/documentos/${id}/versiones`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('version', 'v2');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 403 for a role without documentos.aprobar_version (solicitante)', async () => {
+    const solicitanteRol = await Rol.findOne({ where: { nombre: 'solicitante' } });
+    const solicitanteUsername = `solicitante_version_${Date.now()}`;
+    await Usuario.create({
+      username: solicitanteUsername,
+      email: `${solicitanteUsername}@istho.com.co`,
+      passwordHash: await bcrypt.hash('ClaveSolicitante123!', 10),
+      nombre: 'Solicitante',
+      apellido: 'Version',
+      rolId: solicitanteRol.id,
+    });
+    const solicitanteLogin = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ username: solicitanteUsername, password: 'ClaveSolicitante123!' });
+
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'No debería tener nueva version')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const res = await request(app)
+      .post(`/api/v1/documentos/${id}/versiones`)
+      .set('Authorization', `Bearer ${solicitanteLogin.body.data.token}`)
+      .field('version', 'v2')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    expect(res.status).toBe(403);
+  });
+});
