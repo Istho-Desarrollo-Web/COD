@@ -17,6 +17,7 @@ import StatusChip from '../../components/common/StatusChip/StatusChip';
 import Pagination from '../../components/common/Pagination/Pagination';
 import Input from '../../components/common/Input/Input';
 import Modal from '../../components/common/Modal/Modal';
+import CarpetasModal from './CarpetasModal';
 import { validarArchivo, TIPOS_PERMITIDOS } from '../../utils/validarArchivo';
 
 const ESTADOS = ['vigente', 'por_vencer', 'vencido', 'sin_vigencia'];
@@ -418,6 +419,8 @@ export default function DocumentosListado() {
           </div>
         </form>
       </Modal>
+
+      <CarpetasModal isOpen={carpetasModalAbierto} onClose={() => setCarpetasModalAbierto(false)} areas={areas} />
     </div>
   );
 }

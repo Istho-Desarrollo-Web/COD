@@ -172,4 +172,20 @@ describe('DocumentosListado', () => {
     expect(await screen.findByText('Tipo de archivo no permitido')).toBeInTheDocument();
     expect(documentoService.crear).not.toHaveBeenCalled();
   });
+
+  it('opens "Gestionar carpetas" and creates a carpeta from the listado toolbar', async () => {
+    useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'documentos' && accion === 'crear' });
+    carpetaService.crear.mockResolvedValue({ id: 20, nombre: 'Nueva' });
+    renderPagina();
+
+    await screen.findByText('Manual RH');
+    await userEvent.click(screen.getByRole('button', { name: /gestionar carpetas/i }));
+    await userEvent.selectOptions(screen.getByLabelText('Área de las carpetas'), '1');
+    await within(screen.getByRole('list')).findByText('Contratos');
+
+    await userEvent.type(screen.getByLabelText('Nombre de la nueva carpeta'), 'Nueva');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear carpeta' }));
+
+    await waitFor(() => expect(carpetaService.crear).toHaveBeenCalledWith({ areaId: 1, nombre: 'Nueva', carpetaPadreId: null }));
+  });
 });
