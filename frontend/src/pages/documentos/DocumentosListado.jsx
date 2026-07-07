@@ -17,9 +17,10 @@ import StatusChip from '../../components/common/StatusChip/StatusChip';
 import Pagination from '../../components/common/Pagination/Pagination';
 import Input from '../../components/common/Input/Input';
 import Modal from '../../components/common/Modal/Modal';
-import { validarArchivo } from '../../utils/validarArchivo';
+import { validarArchivo, TIPOS_PERMITIDOS } from '../../utils/validarArchivo';
 
 const ESTADOS = ['vigente', 'por_vencer', 'vencido', 'sin_vigencia'];
+const TIPOS_PERMITIDOS_ACCEPT = Array.from(TIPOS_PERMITIDOS).join(',');
 
 export function aplanarCarpetas(arbol, prefijo = '') {
   return arbol.flatMap((carpeta) => {
@@ -402,7 +403,13 @@ export default function DocumentosListado() {
             <label htmlFor="crear-archivo" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               Archivo *
             </label>
-            <input id="crear-archivo" type="file" className="w-full text-sm" {...registerCrear('archivo', { required: true })} />
+            <input
+              id="crear-archivo"
+              type="file"
+              accept={TIPOS_PERMITIDOS_ACCEPT}
+              className="w-full text-sm"
+              {...registerCrear('archivo', { required: true })}
+            />
             {archivoError && (
               <p role="alert" className="text-xs text-red-500 mt-1">
                 {archivoError}

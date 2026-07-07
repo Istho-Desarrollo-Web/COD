@@ -162,7 +162,11 @@ describe('DocumentosListado', () => {
     await userEvent.type(screen.getByLabelText('Nombre *'), 'Política SST');
 
     const archivoInvalido = new File(['contenido'], 'virus.exe', { type: 'application/x-msdownload' });
-    await userEvent.upload(screen.getByLabelText('Archivo *'), archivoInvalido);
+    // This file's type isn't in `accept`, and userEvent.upload() silently filters
+    // uploads that don't match `accept` — use a local instance with applyAccept
+    // disabled so the file actually reaches the input and validarArchivo runs.
+    const user = userEvent.setup({ applyAccept: false });
+    await user.upload(screen.getByLabelText('Archivo *'), archivoInvalido);
     await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
 
     expect(await screen.findByText('Tipo de archivo no permitido')).toBeInTheDocument();
