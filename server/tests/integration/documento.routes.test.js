@@ -89,3 +89,61 @@ describe('GET /api/v1/documentos/:id', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('POST /api/v1/documentos', () => {
+  it('creates a documento with an uploaded file and computes estado', async () => {
+    const res = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Contrato de prueba')
+      .field('vigenciaDesde', '2026-01-01')
+      .field('vigenciaHasta', '2099-01-01')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.nombre).toBe('Contrato de prueba');
+    expect(res.body.data.estado).toBe('vigente');
+    expect(res.body.data.s3Key).toMatch(/^documentos[\\/]/);
+  });
+
+  it('returns 400 when the file is missing', async () => {
+    const res = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Sin archivo');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when carpetaId belongs to a different area', async () => {
+    const otraArea = await Area.create({ nombre: 'Otra Área Docs', codigo: `OTRADOC${Date.now()}` });
+    const otraCarpeta = await Carpeta.create({ areaId: otraArea.id, nombre: 'Raíz otra' });
+
+    const res = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(otraCarpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Carpeta cruzada')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 403 for a role without documentos.crear (operaciones)', async () => {
+    const res = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${operacionesToken}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'No debería crearse')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    expect(res.status).toBe(403);
+  });
+});
