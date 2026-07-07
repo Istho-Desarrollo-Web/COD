@@ -380,6 +380,25 @@ describe('Documento versiones', () => {
       .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
     expect(res.status).toBe(403);
   });
+
+  it('returns 404 when listing versions for a soft-deleted documento', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Eliminado para versiones')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    await request(app).delete(`/api/v1/documentos/${id}`).set('Authorization', `Bearer ${token}`);
+
+    const res = await request(app)
+      .get(`/api/v1/documentos/${id}/versiones`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
 });
 
 describe('Descarga de archivos', () => {
@@ -445,5 +464,50 @@ describe('Descarga de archivos', () => {
       .get(`/api/v1/documentos/${id}/descargar`)
       .set('Authorization', `Bearer ${operacionesToken}`);
     expect(res.status).toBe(403);
+  });
+
+  it('returns 404 when downloading the current file of a soft-deleted documento', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Eliminado para descarga')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    await request(app).delete(`/api/v1/documentos/${id}`).set('Authorization', `Bearer ${token}`);
+
+    const res = await request(app).get(`/api/v1/documentos/${id}/descargar`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when downloading a historical version of a soft-deleted documento', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Eliminado con historial')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    await request(app)
+      .post(`/api/v1/documentos/${id}/versiones`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('version', 'v2')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+
+    const historialRes = await request(app).get(`/api/v1/documentos/${id}/versiones`).set('Authorization', `Bearer ${token}`);
+    const versionAnteriorId = historialRes.body.data.find((v) => v.version === 'v1').id;
+
+    await request(app).delete(`/api/v1/documentos/${id}`).set('Authorization', `Bearer ${token}`);
+
+    const res = await request(app)
+      .get(`/api/v1/documentos/${id}/versiones/${versionAnteriorId}/descargar`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
   });
 });

@@ -144,7 +144,7 @@ async function eliminar(req, res) {
 
 async function listarVersiones(req, res) {
   const documento = await Documento.findByPk(req.params.id);
-  if (!documento) return notFound(res, 'Documento no encontrado');
+  if (!documento || !documento.activo) return notFound(res, 'Documento no encontrado');
 
   const versiones = await DocumentoVersionHistorial.findAll({
     where: { documentoId: documento.id },
@@ -191,6 +191,9 @@ async function descargar(req, res) {
 }
 
 async function descargarVersion(req, res) {
+  const documento = await Documento.findByPk(req.params.id);
+  if (!documento || !documento.activo) return notFound(res, 'Documento no encontrado');
+
   const version = await DocumentoVersionHistorial.findOne({
     where: { id: req.params.versionId, documentoId: req.params.id },
   });
