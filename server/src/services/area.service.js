@@ -9,9 +9,9 @@ function calcularSaludDocumental({ vigentes, porVencer, vencidos }) {
 async function recalcularSaludArea(areaId) {
   const { Documento } = require('../models');
   const [vigentes, porVencer, vencidos] = await Promise.all([
-    Documento.count({ where: { areaId, estado: 'vigente' } }),
-    Documento.count({ where: { areaId, estado: 'por_vencer' } }),
-    Documento.count({ where: { areaId, estado: 'vencido' } }),
+    Documento.count({ where: { areaId, estado: 'vigente', activo: true } }),
+    Documento.count({ where: { areaId, estado: 'por_vencer', activo: true } }),
+    Documento.count({ where: { areaId, estado: 'vencido', activo: true } }),
   ]);
   const pct = calcularSaludDocumental({ vigentes, porVencer, vencidos });
   await Area.update({ saludDocumentalPct: pct }, { where: { id: areaId } });
