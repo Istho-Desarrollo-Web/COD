@@ -8,6 +8,7 @@ import ProtectedLayout from './components/layout/ProtectedLayout';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/inicio/Dashboard';
 import AreasListado from './pages/areas/AreasListado';
+import DocumentosListado from './pages/documentos/DocumentosListado';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 
 function App() {
@@ -40,7 +41,7 @@ function App() {
                   path="/documentos"
                   element={
                     <PermissionRoute modulo="documentos" accion="ver">
-                      <ProximamentePage nombre="Documentos" />
+                      <DocumentosListado />
                     </PermissionRoute>
                   }
                 />
