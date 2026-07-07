@@ -241,3 +241,59 @@ describe('PUT /api/v1/documentos/:id', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('DELETE /api/v1/documentos/:id', () => {
+  it('soft-deletes a documento and it no longer appears in the list', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Para eliminar')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const res = await request(app).delete(`/api/v1/documentos/${id}`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    const getRes = await request(app).get(`/api/v1/documentos/${id}`).set('Authorization', `Bearer ${token}`);
+    expect(getRes.status).toBe(404);
+  });
+
+  it('returns 404 for a nonexistent documento', async () => {
+    const res = await request(app).delete('/api/v1/documentos/999999999').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 403 for a role without documentos.eliminar (lider_area has no eliminar)', async () => {
+    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const liderUsername = `lider_delete_${Date.now()}`;
+    await Usuario.create({
+      username: liderUsername,
+      email: `${liderUsername}@istho.com.co`,
+      passwordHash: await bcrypt.hash('ClaveLider123!', 10),
+      nombre: 'Lider',
+      apellido: 'Prueba',
+      rolId: liderRol.id,
+    });
+    const liderLogin = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ username: liderUsername, password: 'ClaveLider123!' });
+
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'No debería eliminarse')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const res = await request(app)
+      .delete(`/api/v1/documentos/${id}`)
+      .set('Authorization', `Bearer ${liderLogin.body.data.token}`);
+    expect(res.status).toBe(403);
+  });
+});

@@ -127,4 +127,19 @@ async function editar(req, res) {
   return success(res, documento);
 }
 
-module.exports = { listar, obtener, crear, editar };
+async function eliminar(req, res) {
+  const documento = await Documento.findByPk(req.params.id);
+  if (!documento || !documento.activo) return notFound(res, 'Documento no encontrado');
+
+  const datosAnteriores = documento.toJSON();
+  await documento.update({ activo: false });
+  await Auditoria.registrar({
+    tabla: 'documentos', registroId: documento.id, accion: 'eliminar',
+    usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto, datosAnteriores,
+  });
+  await recalcularSaludArea(documento.areaId);
+
+  return success(res, null, 'Documento eliminado');
+}
+
+module.exports = { listar, obtener, crear, editar, eliminar };
