@@ -2,7 +2,7 @@ const { Documento, TipoDocumento, Carpeta, DocumentoVersionHistorial, Auditoria 
 const { success, created, paginated, notFound, badRequest } = require('../utils/responses');
 const { calcularEstadoDocumento, subirNuevaVersion } = require('../services/documento.service');
 const { recalcularSaludArea } = require('../services/area.service');
-const { guardarArchivo } = require('../services/almacenamiento.service');
+const { guardarArchivo, obtenerRutaAbsoluta } = require('../services/almacenamiento.service');
 
 async function listar(req, res) {
   const { areaId, carpetaId, tipoDocumentoId, estado } = req.query;
@@ -183,4 +183,20 @@ async function subirVersion(req, res) {
   return success(res, actualizado);
 }
 
-module.exports = { listar, obtener, crear, editar, eliminar, listarVersiones, subirVersion };
+async function descargar(req, res) {
+  const documento = await Documento.findByPk(req.params.id);
+  if (!documento || !documento.activo) return notFound(res, 'Documento no encontrado');
+  if (!documento.s3Key) return notFound(res, 'El documento no tiene un archivo asociado');
+  return res.download(obtenerRutaAbsoluta(documento.s3Key));
+}
+
+async function descargarVersion(req, res) {
+  const version = await DocumentoVersionHistorial.findOne({
+    where: { id: req.params.versionId, documentoId: req.params.id },
+  });
+  if (!version) return notFound(res, 'Versión no encontrada');
+  if (!version.s3Key) return notFound(res, 'La versión no tiene un archivo asociado');
+  return res.download(obtenerRutaAbsoluta(version.s3Key));
+}
+
+module.exports = { listar, obtener, crear, editar, eliminar, listarVersiones, subirVersion, descargar, descargarVersion };

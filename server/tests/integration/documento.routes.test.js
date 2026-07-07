@@ -381,3 +381,69 @@ describe('Documento versiones', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('Descarga de archivos', () => {
+  it('downloads the current file for a documento', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Para descargar')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const res = await request(app).get(`/api/v1/documentos/${id}/descargar`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/application\/pdf/);
+  });
+
+  it('returns 404 when downloading a documento that does not exist', async () => {
+    const res = await request(app).get('/api/v1/documentos/999999999/descargar').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('downloads a historical version file', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Con historial descargable')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    await request(app)
+      .post(`/api/v1/documentos/${id}/versiones`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('version', 'v2')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+
+    const historialRes = await request(app).get(`/api/v1/documentos/${id}/versiones`).set('Authorization', `Bearer ${token}`);
+    const versionAnteriorId = historialRes.body.data.find((v) => v.version === 'v1').id;
+
+    const res = await request(app)
+      .get(`/api/v1/documentos/${id}/versiones/${versionAnteriorId}/descargar`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 403 for a role without documentos.exportar (operaciones)', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'No debería descargarse')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const res = await request(app)
+      .get(`/api/v1/documentos/${id}/descargar`)
+      .set('Authorization', `Bearer ${operacionesToken}`);
+    expect(res.status).toBe(403);
+  });
+});

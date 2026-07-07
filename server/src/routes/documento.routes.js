@@ -13,5 +13,7 @@ router.put('/:id', verificarToken, requierePermiso('documentos', 'editar'), asyn
 router.delete('/:id', verificarToken, requierePermiso('documentos', 'eliminar'), asyncHandler(controller.eliminar));
 router.get('/:id/versiones', verificarToken, requierePermiso('documentos', 'ver'), asyncHandler(controller.listarVersiones));
 router.post('/:id/versiones', verificarToken, requierePermiso('documentos', 'aprobar_version'), subirArchivoUnico, asyncHandler(controller.subirVersion));
+router.get('/:id/descargar', verificarToken, requierePermiso('documentos', 'exportar'), asyncHandler(controller.descargar));
+router.get('/:id/versiones/:versionId/descargar', verificarToken, requierePermiso('documentos', 'exportar'), asyncHandler(controller.descargarVersion));
 
 module.exports = router;
