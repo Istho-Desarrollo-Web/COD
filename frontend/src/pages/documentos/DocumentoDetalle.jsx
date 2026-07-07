@@ -27,6 +27,7 @@ export default function DocumentoDetalle() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm();
 
@@ -80,6 +81,24 @@ export default function DocumentoDetalle() {
     }
     cargarCarpetasDelArea();
   }, [documento?.areaId]);
+
+  // Los catálogos de tipos y carpetas se cargan de forma asíncrona e independiente
+  // del documento. Si `reset()` (en cargarDocumento) se ejecuta antes de que el
+  // <select> correspondiente tenga sus <option>s, el navegador auto-selecciona la
+  // primera opción disponible al llegar el catálogo, ignorando el valor real del
+  // documento. Estos efectos vuelven a fijar explícitamente el valor real cada vez
+  // que el catálogo cambia, sin importar el orden en que resuelvan los fetches.
+  useEffect(() => {
+    if (documento && tipos.length > 0) {
+      setValue('tipoDocumentoId', String(documento.tipoDocumentoId));
+    }
+  }, [tipos, documento, setValue]);
+
+  useEffect(() => {
+    if (documento && carpetas.length > 0) {
+      setValue('carpetaId', String(documento.carpetaId));
+    }
+  }, [carpetas, documento, setValue]);
 
   useEffect(() => {
     async function cargarNombreArea() {

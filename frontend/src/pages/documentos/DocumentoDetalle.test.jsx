@@ -114,4 +114,26 @@ describe('DocumentoDetalle', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Descargar versión vigente' }));
     await waitFor(() => expect(documentoService.descargar).toHaveBeenCalledWith('1'));
   });
+
+  it('keeps the real tipo/carpeta selected once multi-item catalogs arrive after the documento (race condition regression)', async () => {
+    // Catálogos con más de un elemento, y con el valor real del documento (tipoId 1,
+    // carpetaId 10) NO en la primera posición. Con un solo elemento el bug era
+    // indistinguible porque "la opción incorrecta" y "la correcta" eran la misma.
+    tipoDocumentoService.listar.mockResolvedValue([
+      { id: 2, nombre: 'Otro tipo' },
+      { id: 1, nombre: 'Manual' },
+    ]);
+    carpetaService.listar.mockResolvedValue([
+      { id: 20, nombre: 'Otra carpeta', carpetaPadreId: null, areaId: 1, subcarpetas: [] },
+      { id: 10, nombre: 'Contratos', carpetaPadreId: null, areaId: 1, subcarpetas: [] },
+    ]);
+
+    renderDetalle();
+    await screen.findByText('Manual RH');
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Tipo de documento').value).toBe('1');
+      expect(screen.getByLabelText('Carpeta').value).toBe('10');
+    });
+  });
 });
