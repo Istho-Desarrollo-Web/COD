@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const { sequelize, connectWithRetry } = require('./src/config/database');
 const { createMigrator } = require('./src/config/migrator');
+const { programar: programarRecalculoEstados } = require('./src/jobs/recalcularEstadosDocumentos.job');
 const { error, conflict, serverError } = require('./src/utils/responses');
 
 function validateEnv() {
@@ -79,6 +80,7 @@ if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   initializeDatabase()
     .then(() => {
+      programarRecalculoEstados();
       app.listen(PORT, () => {
         const entorno = process.env.NODE_ENV || 'development';
         const baseUrl = process.env.APP_URL || (entorno !== 'production' ? `http://localhost:${PORT}` : null);

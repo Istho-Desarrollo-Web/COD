@@ -9,7 +9,8 @@
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "migration:up": "node src/scripts/migrate-cli.js up",
     "migration:down": "node src/scripts/migrate-cli.js down",
-    "migration:status": "node src/scripts/migrate-cli.js status"
+    "migration:status": "node src/scripts/migrate-cli.js status",
+    "job:recalcular-estados": "node src/scripts/ejecutarRecalculoEstados.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
