@@ -147,3 +147,97 @@ describe('POST /api/v1/documentos', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('PUT /api/v1/documentos/:id', () => {
+  it('edits metadata without touching vigencia and does not change estado', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Para editar')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+    expect(createRes.body.data.estado).toBe('sin_vigencia');
+
+    const res = await request(app)
+      .put(`/api/v1/documentos/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nombre: 'Nombre editado' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.nombre).toBe('Nombre editado');
+    expect(res.body.data.estado).toBe('sin_vigencia');
+  });
+
+  it('recalculates estado when vigenciaHasta is edited', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Para vencer')
+      .field('vigenciaDesde', '2026-01-01')
+      .field('vigenciaHasta', '2099-01-01')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+    expect(createRes.body.data.estado).toBe('vigente');
+
+    const res = await request(app)
+      .put(`/api/v1/documentos/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ vigenciaHasta: '2026-01-15' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.estado).toBe('vencido');
+  });
+
+  it('returns 400 when the new carpetaId belongs to a different area', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Para mover mal')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const otraArea = await Area.create({ nombre: 'Otra Área Edit', codigo: `OTRAEDIT${Date.now()}` });
+    const otraCarpeta = await Carpeta.create({ areaId: otraArea.id, nombre: 'Raíz otra edit' });
+
+    const res = await request(app)
+      .put(`/api/v1/documentos/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ carpetaId: otraCarpeta.id });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for a nonexistent documento', async () => {
+    const res = await request(app)
+      .put('/api/v1/documentos/999999999')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nombre: 'No existe' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 403 for a role without documentos.editar (operaciones)', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/documentos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('areaId', String(area.id))
+      .field('carpetaId', String(carpeta.id))
+      .field('tipoDocumentoId', String(tipoDocumento.id))
+      .field('nombre', 'Para probar 403')
+      .attach('archivo', 'tests/fixtures/documento-prueba.pdf');
+    const id = createRes.body.data.id;
+
+    const res = await request(app)
+      .put(`/api/v1/documentos/${id}`)
+      .set('Authorization', `Bearer ${operacionesToken}`)
+      .send({ nombre: 'No debería editarse' });
+    expect(res.status).toBe(403);
+  });
+});

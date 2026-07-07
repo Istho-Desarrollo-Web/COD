@@ -77,4 +77,54 @@ async function crear(req, res) {
   return created(res, 'Documento creado', documento);
 }
 
-module.exports = { listar, obtener, crear };
+async function editar(req, res) {
+  const documento = await Documento.findByPk(req.params.id);
+  if (!documento || !documento.activo) return notFound(res, 'Documento no encontrado');
+
+  const { nombre, codigo, tipoDocumentoId, carpetaId, responsableUsuarioId, vigenciaDesde, vigenciaHasta, diasAlertaVencimiento } = req.body;
+
+  if (carpetaId !== undefined) {
+    const carpeta = await Carpeta.findByPk(carpetaId);
+    if (!carpeta || !carpeta.activo) return notFound(res, 'Carpeta no encontrada');
+    if (carpeta.areaId !== documento.areaId) return badRequest(res, 'La carpeta no pertenece al área del documento');
+  }
+
+  const vigenciaDesdeEfectiva = vigenciaDesde !== undefined ? vigenciaDesde : documento.vigenciaDesde;
+  const vigenciaHastaEfectiva = vigenciaHasta !== undefined ? vigenciaHasta : documento.vigenciaHasta;
+  if (vigenciaDesdeEfectiva && vigenciaHastaEfectiva && new Date(vigenciaHastaEfectiva) <= new Date(vigenciaDesdeEfectiva)) {
+    return badRequest(res, 'vigenciaHasta debe ser posterior a vigenciaDesde');
+  }
+
+  const datosAnteriores = documento.toJSON();
+  const cambiosVigencia = vigenciaDesde !== undefined || vigenciaHasta !== undefined || diasAlertaVencimiento !== undefined;
+
+  const cambios = {};
+  if (nombre !== undefined) cambios.nombre = nombre;
+  if (codigo !== undefined) cambios.codigo = codigo;
+  if (tipoDocumentoId !== undefined) cambios.tipoDocumentoId = tipoDocumentoId;
+  if (carpetaId !== undefined) cambios.carpetaId = carpetaId;
+  if (responsableUsuarioId !== undefined) cambios.responsableUsuarioId = responsableUsuarioId;
+  if (vigenciaDesde !== undefined) cambios.vigenciaDesde = vigenciaDesde;
+  if (vigenciaHasta !== undefined) cambios.vigenciaHasta = vigenciaHasta;
+  if (diasAlertaVencimiento !== undefined) cambios.diasAlertaVencimiento = diasAlertaVencimiento;
+
+  if (cambiosVigencia) {
+    const tipoDocumentoIdEfectivo = cambios.tipoDocumentoId ?? documento.tipoDocumentoId;
+    const tipoDocumento = await TipoDocumento.findByPk(tipoDocumentoIdEfectivo);
+    const diasAlerta = (cambios.diasAlertaVencimiento ?? documento.diasAlertaVencimiento) ?? tipoDocumento.diasAlertaVencimientoDefault;
+    cambios.estado = calcularEstadoDocumento({ vigenciaHasta: vigenciaHastaEfectiva, diasAlerta });
+  }
+
+  await documento.update(cambios);
+  await Auditoria.registrar({
+    tabla: 'documentos', registroId: documento.id, accion: 'actualizar',
+    usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto, datosAnteriores, datosNuevos: documento.toJSON(),
+  });
+  if (cambiosVigencia && cambios.estado !== datosAnteriores.estado) {
+    await recalcularSaludArea(documento.areaId);
+  }
+
+  return success(res, documento);
+}
+
+module.exports = { listar, obtener, crear, editar };
