@@ -10,6 +10,7 @@ Proveedores/Contratistas y Repositorio documental SGI.
   `docs/superpowers/specs/2026-07-02-cod-modelo-datos-estructura-design.md`
 - Diseño del frontend (scaffold, auth, layout, Dashboard Inicio, Áreas):
   `docs/superpowers/specs/2026-07-06-cod-frontend-foundation-design.md`
+- Diseño de la API de Documentos (documentos, carpetas, tipos de documento, subida de archivos, job diario): `docs/superpowers/specs/2026-07-07-cod-documentos-api-design.md`
 - Integración futura con el CRM: `docs/architecture/crm-integration.md`
 
 ## Backend (`server/`)
@@ -27,6 +28,13 @@ Tests (requieren MySQL local accesible, ver `server/.env.test`):
 ```bash
 cd server
 npm test
+```
+
+Archivos subidos por la API de Documentos se guardan localmente en `server/uploads/` (ignorado por git). Para forzar el recálculo diario de `estado` manualmente:
+
+```bash
+cd server
+npm run job:recalcular-estados
 ```
 
 ## Frontend (`frontend/`)
