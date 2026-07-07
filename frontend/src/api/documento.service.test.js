@@ -70,7 +70,7 @@ describe('documento.service', () => {
     expect(mock.history.post[0].data).toBe(formData);
   });
 
-  it('descargar fetches the file as a blob and triggers a download', async () => {
+  it('descargar fetches the file as a blob and triggers a download with the extension from the mimetype', async () => {
     const blob = new Blob(['contenido'], { type: 'application/pdf' });
     mock.onGet('/documentos/1/descargar').reply(200, blob);
 
@@ -80,9 +80,13 @@ describe('documento.service', () => {
     global.URL.revokeObjectURL = revokeObjectURL;
     const click = vi.fn();
     const anchorOriginal = document.createElement.bind(document);
+    let enlaceCreado;
     vi.spyOn(document, 'createElement').mockImplementation((tag) => {
       const el = anchorOriginal(tag);
-      if (tag === 'a') el.click = click;
+      if (tag === 'a') {
+        el.click = click;
+        enlaceCreado = el;
+      }
       return el;
     });
 
@@ -91,6 +95,55 @@ describe('documento.service', () => {
     expect(createObjectURL).toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    expect(enlaceCreado.download).toBe('documento-1.pdf');
+
+    document.createElement.mockRestore();
+  });
+
+  it('descargarVersion appends the extension derived from the mimetype to the version filename', async () => {
+    const blob = new Blob(['contenido'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    mock.onGet('/documentos/1/versiones/9/descargar').reply(200, blob);
+
+    global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+    global.URL.revokeObjectURL = vi.fn();
+    const anchorOriginal = document.createElement.bind(document);
+    let enlaceCreado;
+    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      const el = anchorOriginal(tag);
+      if (tag === 'a') {
+        el.click = vi.fn();
+        enlaceCreado = el;
+      }
+      return el;
+    });
+
+    await documentoService.descargarVersion(1, 9);
+
+    expect(enlaceCreado.download).toBe('documento-1-version-9.docx');
+
+    document.createElement.mockRestore();
+  });
+
+  it('descargar omits the extension when the mimetype is not in the known map', async () => {
+    const blob = new Blob(['contenido'], { type: 'application/octet-stream' });
+    mock.onGet('/documentos/1/descargar').reply(200, blob);
+
+    global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+    global.URL.revokeObjectURL = vi.fn();
+    const anchorOriginal = document.createElement.bind(document);
+    let enlaceCreado;
+    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      const el = anchorOriginal(tag);
+      if (tag === 'a') {
+        el.click = vi.fn();
+        enlaceCreado = el;
+      }
+      return el;
+    });
+
+    await documentoService.descargar(1);
+
+    expect(enlaceCreado.download).toBe('documento-1');
 
     document.createElement.mockRestore();
   });

@@ -6,7 +6,6 @@ import { ArrowLeft, Download } from 'lucide-react';
 import documentoService from '../../api/documento.service';
 import carpetaService from '../../api/carpeta.service';
 import tipoDocumentoService from '../../api/tipoDocumento.service';
-import areaService from '../../api/area.service';
 import { aplanarCarpetas } from './DocumentosListado';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button/Button';
@@ -159,13 +158,6 @@ export default function DocumentoDetalle() {
       setValue('carpetaId', String(documento.carpetaId));
     }
   }, [carpetas, documento, setValue]);
-
-  useEffect(() => {
-    async function cargarNombreArea() {
-      await areaService.listar();
-    }
-    cargarNombreArea();
-  }, []);
 
   async function onGuardar(valores) {
     try {

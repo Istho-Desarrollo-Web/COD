@@ -47,7 +47,8 @@ function DocumentoCard({ documento, nombresPorId, onClick }) {
         <FileText className="w-8 h-8 text-slate-300 dark:text-slate-600" />
       </div>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-        {nombresPorId.areas[documento.areaId]} / {nombresPorId.carpetas[documento.carpetaId]} · {nombresPorId.tipos[documento.tipoDocumentoId]}
+        {nombresPorId.areas[documento.areaId] || documento.areaId} / {nombresPorId.carpetas[documento.carpetaId] || documento.carpetaId} ·{' '}
+        {nombresPorId.tipos[documento.tipoDocumentoId] || documento.tipoDocumentoId}
       </p>
       <StatusChip status={documento.estado} />
     </div>
@@ -185,6 +186,12 @@ export default function DocumentosListado() {
     cargarDocumentos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros]);
+
+  function cerrarModalCrear() {
+    setCrearModalAbierto(false);
+    resetCrear();
+    setArchivoError(null);
+  }
 
   function actualizarFiltro(campo, valor) {
     setFiltros((prev) => ({
@@ -326,16 +333,12 @@ export default function DocumentosListado() {
 
       <Modal
         isOpen={crearModalAbierto}
-        onClose={() => {
-          setCrearModalAbierto(false);
-          resetCrear();
-          setArchivoError(null);
-        }}
+        onClose={cerrarModalCrear}
         title="Crear documento"
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setCrearModalAbierto(false)}>
+            <Button variant="outline" onClick={cerrarModalCrear}>
               Cancelar
             </Button>
             <Button onClick={handleSubmitCrear(onCrearDocumento)}>Crear</Button>

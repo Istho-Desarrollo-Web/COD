@@ -1,5 +1,21 @@
 import apiClient from './client';
 
+const EXTENSION_POR_MIMETYPE = {
+  'application/pdf': 'pdf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+};
+
+function obtenerExtension(mimetype) {
+  return EXTENSION_POR_MIMETYPE[mimetype];
+}
+
 async function listar(filtros = {}) {
   const response = await apiClient.get('/documentos', { params: filtros });
   return { data: response.data, pagination: response.pagination };
@@ -12,6 +28,9 @@ async function obtener(id) {
 
 async function crear(formData) {
   const response = await apiClient.post('/documentos', formData, {
+    // Content-Type: undefined evita que axios serialice el FormData como JSON
+    // (apiClient fija 'application/json' por defecto en client.js); así el
+    // navegador genera el boundary multipart/form-data correcto.
     headers: { 'Content-Type': undefined },
   });
   return response.data;
@@ -34,12 +53,17 @@ async function listarVersiones(id) {
 
 async function subirVersion(id, formData) {
   const response = await apiClient.post(`/documentos/${id}/versiones`, formData, {
+    // Content-Type: undefined evita que axios serialice el FormData como JSON
+    // (apiClient fija 'application/json' por defecto en client.js); así el
+    // navegador genera el boundary multipart/form-data correcto.
     headers: { 'Content-Type': undefined },
   });
   return response.data;
 }
 
-function descargarBlob(blob, nombreArchivo) {
+function descargarBlob(blob, nombreBase) {
+  const extension = obtenerExtension(blob.type);
+  const nombreArchivo = extension ? `${nombreBase}.${extension}` : nombreBase;
   const url = URL.createObjectURL(blob);
   const enlace = document.createElement('a');
   enlace.href = url;

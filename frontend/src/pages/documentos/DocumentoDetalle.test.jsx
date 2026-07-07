@@ -6,13 +6,11 @@ import DocumentoDetalle from './DocumentoDetalle';
 import documentoService from '../../api/documento.service';
 import carpetaService from '../../api/carpeta.service';
 import tipoDocumentoService from '../../api/tipoDocumento.service';
-import areaService from '../../api/area.service';
 import { useAuth } from '../../context/AuthContext';
 
 vi.mock('../../api/documento.service');
 vi.mock('../../api/carpeta.service');
 vi.mock('../../api/tipoDocumento.service');
-vi.mock('../../api/area.service');
 vi.mock('../../context/AuthContext');
 
 const DOCUMENTO = {
@@ -46,7 +44,6 @@ describe('DocumentoDetalle', () => {
     useAuth.mockReturnValue({ tienePermiso: () => true });
     documentoService.obtener.mockResolvedValue(DOCUMENTO);
     documentoService.listarVersiones.mockResolvedValue([]);
-    areaService.listar.mockResolvedValue([{ id: 1, nombre: 'RRHH' }]);
     tipoDocumentoService.listar.mockResolvedValue([{ id: 1, nombre: 'Manual' }]);
     carpetaService.listar.mockResolvedValue([{ id: 10, nombre: 'Contratos', carpetaPadreId: null, areaId: 1, subcarpetas: [] }]);
   });
@@ -55,7 +52,6 @@ describe('DocumentoDetalle', () => {
     renderDetalle();
     expect(await screen.findByText('Manual RH')).toBeInTheDocument();
     expect(documentoService.obtener).toHaveBeenCalledWith('1');
-    expect(areaService.listar).toHaveBeenCalled();
     expect(tipoDocumentoService.listar).toHaveBeenCalled();
     expect(carpetaService.listar).toHaveBeenCalledWith(1);
     expect(screen.getByText('vigente')).toBeInTheDocument();
