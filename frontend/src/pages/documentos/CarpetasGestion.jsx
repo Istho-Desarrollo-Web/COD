@@ -1,20 +1,55 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useSnackbar } from 'notistack';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileText, Folder, Info, Plus } from 'lucide-react';
 import carpetaService from '../../api/carpeta.service';
 import areaService from '../../api/area.service';
 import { aplanarCarpetas } from './DocumentosListado';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
+import Modal from '../../components/common/Modal/Modal';
+import EmptyState from '../../components/common/EmptyState/EmptyState';
 import FilterDropdown from '../../components/common/FilterDropdown/FilterDropdown';
 
+function CarpetaCard({ carpeta, onAbrir, onVerDetalle }) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={carpeta.nombre}
+      onClick={onAbrir}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onAbrir()}
+      className="bg-white dark:bg-centhrix-card rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 cursor-pointer flex items-start justify-between gap-2"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <Folder className="w-8 h-8 text-slate-300 dark:text-slate-600 shrink-0" aria-hidden="true" />
+        <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{carpeta.nombre}</p>
+      </div>
+      <button
+        type="button"
+        aria-label={`Ver detalle de ${carpeta.nombre}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onVerDetalle();
+        }}
+        className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-centhrix-surface rounded-lg transition-colors shrink-0"
+      >
+        <Info className="w-4 h-4" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export default function CarpetasGestion() {
+  const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const [areas, setAreas] = useState([]);
   const [areaId, setAreaId] = useState('');
-  const [carpetas, setCarpetas] = useState([]);
+  const [arbol, setArbol] = useState([]);
+  const [carpetaActualId, setCarpetaActualId] = useState(null);
+  const [detalleId, setDetalleId] = useState(null);
+  const [crearModalAbierto, setCrearModalAbierto] = useState(false);
   const {
     register,
     handleSubmit,
@@ -36,31 +71,60 @@ export default function CarpetasGestion() {
 
   async function cargarCarpetas(area) {
     if (!area) {
-      setCarpetas([]);
+      setArbol([]);
       return;
     }
     try {
-      const arbol = await carpetaService.listar(Number(area));
-      setCarpetas(aplanarCarpetas(arbol));
+      const data = await carpetaService.listar(Number(area));
+      setArbol(data);
     } catch {
-      setCarpetas([]);
+      setArbol([]);
     }
   }
 
   useEffect(() => {
+    setCarpetaActualId(null);
+    setDetalleId(null);
+    setCrearModalAbierto(false);
     cargarCarpetas(areaId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaId]);
 
-  async function onCrearCarpeta({ nombre, carpetaPadreId }) {
+  const carpetasPlanas = useMemo(() => aplanarCarpetas(arbol), [arbol]);
+  const nivelActual = carpetasPlanas.filter((carpeta) => carpeta.carpetaPadreId === carpetaActualId);
+
+  function calcularAncestros(id) {
+    const ancestros = [];
+    let actual = id != null ? carpetasPlanas.find((carpeta) => carpeta.id === id) : null;
+    while (actual) {
+      ancestros.unshift(actual);
+      actual = actual.carpetaPadreId != null ? carpetasPlanas.find((carpeta) => carpeta.id === actual.carpetaPadreId) : null;
+    }
+    return ancestros;
+  }
+  const ancestros = calcularAncestros(carpetaActualId);
+  const areaSeleccionada = areas.find((area) => area.id === Number(areaId));
+  const carpetaDetalle = detalleId != null ? carpetasPlanas.find((carpeta) => carpeta.id === detalleId) : null;
+
+  async function onCrearCarpeta({ nombre }) {
     try {
-      await carpetaService.crear({ areaId: Number(areaId), nombre, carpetaPadreId: carpetaPadreId || null });
+      await carpetaService.crear({ areaId: Number(areaId), nombre, carpetaPadreId: carpetaActualId });
       enqueueSnackbar('Carpeta creada exitosamente', { variant: 'success' });
       reset();
+      setCrearModalAbierto(false);
       await cargarCarpetas(areaId);
     } catch (error) {
       enqueueSnackbar(error?.message || 'No se pudo crear la carpeta', { variant: 'error' });
     }
+  }
+
+  function cerrarModalCrear() {
+    setCrearModalAbierto(false);
+    reset();
+  }
+
+  function irADocumentos() {
+    navigate(`/documentos?areaId=${carpetaDetalle.areaId}&carpetaId=${carpetaDetalle.id}`);
   }
 
   const opcionesArea = areas.map((area) => ({ value: area.id, label: area.nombre }));
@@ -89,39 +153,104 @@ export default function CarpetasGestion() {
       </div>
 
       {areaId && (
-        <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-1 mb-6">
-          {carpetas.length === 0 && <li className="text-slate-400 dark:text-slate-500">Sin carpetas todavía en esta área.</li>}
-          {carpetas.map((carpeta) => (
-            <li key={carpeta.id}>{carpeta.ruta}</li>
-          ))}
-        </ul>
-      )}
-
-      {areaId && (
-        <form className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700 max-w-sm">
-          <Input label="Nombre de la nueva carpeta" error={errors.nombre?.message} {...register('nombre', { required: 'El nombre es obligatorio' })} />
-
-          <div>
-            <label htmlFor="carpetas-gestion-padre" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-              Carpeta padre (opcional)
-            </label>
-            <select
-              id="carpetas-gestion-padre"
-              className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-              {...register('carpetaPadreId')}
-            >
-              <option value="">Ninguna (carpeta raíz)</option>
-              {carpetas.map((carpeta) => (
-                <option key={carpeta.id} value={carpeta.id}>
-                  {carpeta.ruta}
-                </option>
+        <>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <nav aria-label="Ruta de carpetas" className="flex items-center flex-wrap gap-1 text-sm">
+              <button
+                type="button"
+                onClick={() => setCarpetaActualId(null)}
+                className={`px-2 py-1 rounded-lg transition-colors ${
+                  carpetaActualId === null
+                    ? 'font-semibold text-slate-800 dark:text-slate-100'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                {areaSeleccionada?.nombre || 'Área'}
+              </button>
+              {ancestros.map((carpeta) => (
+                <span key={carpeta.id} className="flex items-center gap-1">
+                  <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600" aria-hidden="true" />
+                  <button
+                    type="button"
+                    onClick={() => setCarpetaActualId(carpeta.id)}
+                    className={`px-2 py-1 rounded-lg transition-colors ${
+                      carpeta.id === carpetaActualId
+                        ? 'font-semibold text-slate-800 dark:text-slate-100'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {carpeta.nombre}
+                  </button>
+                </span>
               ))}
-            </select>
+            </nav>
+
+            <Button icon={Plus} onClick={() => setCrearModalAbierto(true)}>
+              Nueva carpeta
+            </Button>
           </div>
 
-          <Button onClick={handleSubmit(onCrearCarpeta)}>Crear carpeta</Button>
-        </form>
+          {nivelActual.length === 0 ? (
+            <EmptyState icon={Folder} title="Sin subcarpetas aquí" description='Usa "Nueva carpeta" arriba para crear la primera.' />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {nivelActual.map((carpeta) => (
+                <CarpetaCard
+                  key={carpeta.id}
+                  carpeta={carpeta}
+                  onAbrir={() => setCarpetaActualId(carpeta.id)}
+                  onVerDetalle={() => setDetalleId(carpeta.id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
+
+      <Modal
+        isOpen={crearModalAbierto}
+        onClose={cerrarModalCrear}
+        title="Nueva carpeta"
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={cerrarModalCrear}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit(onCrearCarpeta)}>Crear carpeta</Button>
+          </>
+        }
+      >
+        <form className="space-y-4">
+          <Input label="Nombre de la nueva carpeta" error={errors.nombre?.message} {...register('nombre', { required: 'El nombre es obligatorio' })} />
+        </form>
+      </Modal>
+
+      <Modal isOpen={detalleId != null} onClose={() => setDetalleId(null)} title={carpetaDetalle?.nombre || ''} size="sm">
+        {carpetaDetalle && (
+          <div className="space-y-4">
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-slate-500 dark:text-slate-400">Ruta</dt>
+                <dd className="text-slate-800 dark:text-slate-100 font-medium">{carpetaDetalle.ruta}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 dark:text-slate-400">Creada el</dt>
+                <dd className="text-slate-800 dark:text-slate-100 font-medium">
+                  {new Date(carpetaDetalle.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 dark:text-slate-400">Subcarpetas</dt>
+                <dd className="text-slate-800 dark:text-slate-100 font-medium">{carpetaDetalle.subcarpetasCount}</dd>
+              </div>
+            </dl>
+            <Button icon={FileText} onClick={irADocumentos} fullWidth>
+              Ver documentos de esta carpeta
+            </Button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
