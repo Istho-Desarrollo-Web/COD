@@ -29,7 +29,7 @@ const Input = forwardRef(
         )}
 
         <div className="relative">
-          {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" />}
+          {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />}
 
           <input
             ref={ref}
@@ -42,8 +42,12 @@ const Input = forwardRef(
             w-full py-2.5 border rounded-xl text-sm transition-colors
             focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500
             ${Icon ? 'pl-10' : 'pl-4'} pr-4
-            ${error ? 'border-red-300 bg-red-50 text-red-900 placeholder-red-300' : 'border-slate-200 bg-white text-slate-900'}
-            ${disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}
+            ${
+              error
+                ? 'border-red-300 dark:border-red-500/60 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-200 placeholder-red-300 dark:placeholder-red-400/60'
+                : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500'
+            }
+            ${disabled ? 'bg-slate-50 dark:bg-centhrix-card text-slate-500 dark:text-slate-500 cursor-not-allowed' : ''}
             ${className}
           `}
             {...props}

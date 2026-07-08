@@ -59,7 +59,7 @@ export default function CarpetasModal({ isOpen, onClose, areas }) {
             id="carpetas-modal-area"
             value={areaId}
             onChange={(e) => setAreaId(e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm"
+            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
           >
             <option value="">Selecciona un área</option>
             {areas.map((area) => (
@@ -87,7 +87,7 @@ export default function CarpetasModal({ isOpen, onClose, areas }) {
               <label htmlFor="carpetas-modal-padre" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                 Carpeta padre (opcional)
               </label>
-              <select id="carpetas-modal-padre" className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm" {...register('carpetaPadreId')}>
+              <select id="carpetas-modal-padre" className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100" {...register('carpetaPadreId')}>
                 <option value="">Ninguna (carpeta raíz)</option>
                 {carpetas.map((carpeta) => (
                   <option key={carpeta.id} value={carpeta.id}>

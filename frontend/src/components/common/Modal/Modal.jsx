@@ -86,23 +86,27 @@ const Modal = ({ isOpen, onClose, title, subtitle, children, size = 'md', showCl
         aria-describedby={subtitle ? descId : undefined}
         className={`
           relative w-full ${sizeClasses[size]}
-          bg-white rounded-2xl shadow-2xl
+          bg-white dark:bg-centhrix-card rounded-2xl shadow-2xl
           max-h-[90vh] flex flex-col
         `}
       >
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+        <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h2 id={titleId} className="text-xl font-semibold text-slate-800">
+            <h2 id={titleId} className="text-xl font-semibold text-slate-800 dark:text-slate-100">
               {title}
             </h2>
             {subtitle && (
-              <p id={descId} className="text-sm text-slate-500 mt-1">
+              <p id={descId} className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {subtitle}
               </p>
             )}
           </div>
           {showCloseButton && (
-            <button onClick={onClose} aria-label="Cerrar modal" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <button
+              onClick={onClose}
+              aria-label="Cerrar modal"
+              className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-centhrix-surface rounded-lg transition-colors"
+            >
               <X className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
@@ -111,7 +115,7 @@ const Modal = ({ isOpen, onClose, title, subtitle, children, size = 'md', showCl
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
 
         {footer && (
-          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 p-6 border-t border-gray-100 bg-slate-50 rounded-b-2xl [&>button]:w-full sm:[&>button]:w-auto">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-slate-50 dark:bg-centhrix-surface rounded-b-2xl [&>button]:w-full sm:[&>button]:w-auto">
             {footer}
           </div>
         )}

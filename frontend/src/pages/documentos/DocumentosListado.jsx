@@ -243,7 +243,7 @@ export default function DocumentosListado() {
             id="filtro-area"
             value={filtros.areaId}
             onChange={(e) => actualizarFiltro('areaId', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm"
+            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
           >
             <option value="">Todas</option>
             {areas.map((area) => (
@@ -263,7 +263,7 @@ export default function DocumentosListado() {
             value={filtros.carpetaId}
             disabled={!filtros.areaId}
             onChange={(e) => actualizarFiltro('carpetaId', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
+            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100 disabled:bg-slate-50 dark:disabled:bg-centhrix-card"
           >
             <option value="">Todas</option>
             {carpetas.map((carpeta) => (
@@ -282,7 +282,7 @@ export default function DocumentosListado() {
             id="filtro-tipo"
             value={filtros.tipoDocumentoId}
             onChange={(e) => actualizarFiltro('tipoDocumentoId', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm"
+            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
           >
             <option value="">Todos</option>
             {tipos.map((tipo) => (
@@ -301,7 +301,7 @@ export default function DocumentosListado() {
             id="filtro-estado"
             value={filtros.estado}
             onChange={(e) => actualizarFiltro('estado', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm"
+            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
           >
             <option value="">Todos</option>
             {ESTADOS.map((estado) => (
@@ -350,7 +350,7 @@ export default function DocumentosListado() {
             <label htmlFor="crear-areaId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               Área *
             </label>
-            <select id="crear-areaId" className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm" {...registerCrear('areaId', { required: true })}>
+            <select id="crear-areaId" className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100" {...registerCrear('areaId', { required: true })}>
               <option value="">Selecciona un área</option>
               {areas.map((area) => (
                 <option key={area.id} value={area.id}>
@@ -367,7 +367,7 @@ export default function DocumentosListado() {
             <select
               id="crear-carpetaId"
               disabled={!areaSeleccionadaCrear}
-              className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
+              className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100 disabled:bg-slate-50 dark:disabled:bg-centhrix-card"
               {...registerCrear('carpetaId', { required: true })}
             >
               <option value="">Selecciona una carpeta</option>
@@ -383,7 +383,7 @@ export default function DocumentosListado() {
             <label htmlFor="crear-tipoDocumentoId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               Tipo de documento *
             </label>
-            <select id="crear-tipoDocumentoId" className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm" {...registerCrear('tipoDocumentoId', { required: true })}>
+            <select id="crear-tipoDocumentoId" className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100" {...registerCrear('tipoDocumentoId', { required: true })}>
               <option value="">Selecciona un tipo</option>
               {tipos.map((tipo) => (
                 <option key={tipo.id} value={tipo.id}>

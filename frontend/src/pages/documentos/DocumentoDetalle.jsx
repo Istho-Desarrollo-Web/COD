@@ -256,7 +256,7 @@ export default function DocumentoDetalle() {
                 <select
                   id="detalle-tipoDocumentoId"
                   disabled={!tienePermiso('documentos', 'editar')}
-                  className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
+                  className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100 disabled:bg-slate-50 dark:disabled:bg-centhrix-card"
                   {...register('tipoDocumentoId')}
                 >
                   {tipos.map((tipo) => (
@@ -274,7 +274,7 @@ export default function DocumentoDetalle() {
                 <select
                   id="detalle-carpetaId"
                   disabled={!tienePermiso('documentos', 'editar')}
-                  className="w-full py-2.5 px-4 border border-slate-200 rounded-xl text-sm disabled:bg-slate-50"
+                  className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100 disabled:bg-slate-50 dark:disabled:bg-centhrix-card"
                   {...register('carpetaId')}
                 >
                   {carpetas.map((carpeta) => (
