@@ -11,6 +11,8 @@ import AreasListado from './pages/areas/AreasListado';
 import DocumentosListado from './pages/documentos/DocumentosListado';
 import DocumentoDetalle from './pages/documentos/DocumentoDetalle';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
+import AdministracionInicio from './pages/administracion/AdministracionInicio';
+import UsuariosListado from './pages/administracion/UsuariosListado';
 
 function App() {
   return (
@@ -86,7 +88,15 @@ function App() {
                     </PermissionRoute>
                   }
                 />
-                <Route path="/administracion" element={<ProximamentePage nombre="Administración" />} />
+                <Route path="/administracion" element={<AdministracionInicio />} />
+                <Route
+                  path="/administracion/usuarios"
+                  element={
+                    <PermissionRoute modulo="usuarios" accion="ver">
+                      <UsuariosListado />
+                    </PermissionRoute>
+                  }
+                />
               </Route>
 
               <Route path="*" element={<Navigate to="/inicio" replace />} />
