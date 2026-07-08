@@ -14,11 +14,22 @@ import ProximamentePage from './pages/proximamente/ProximamentePage';
 import AdministracionInicio from './pages/administracion/AdministracionInicio';
 import UsuariosListado from './pages/administracion/UsuariosListado';
 
+const snackbarConfig = {
+  maxSnack: 3,
+  autoHideDuration: 3000,
+  anchorOrigin: { vertical: 'bottom', horizontal: 'center' },
+  preventDuplicate: true,
+  dense: true,
+  style: { zIndex: 99999 },
+  classes: { containerRoot: 'notistack-SnackbarContainer' },
+  iconVariant: { success: null, error: null, warning: null, info: null },
+};
+
 function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <SnackbarProvider maxSnack={3}>
+        <SnackbarProvider {...snackbarConfig}>
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
