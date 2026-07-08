@@ -23,6 +23,7 @@ function renderPagina() {
 
 describe('AreasListado', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     window.innerWidth = 1280;
     usuarioService.listar.mockResolvedValue([]);
@@ -182,5 +183,48 @@ describe('AreasListado', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
 
     await waitFor(() => expect(areaService.crear).toHaveBeenCalledWith({ nombre: 'TI', codigo: 'TI', liderUsuarioId: 7 }));
+  });
+
+  it('shows a validation error and blocks submission when "Nombre del líder" is left empty', async () => {
+    useAuth.mockReturnValue({ isAdmin: true });
+    areaService.listar.mockResolvedValue([]);
+    rolService.listar.mockResolvedValue([{ id: 3, nombre: 'lider_area' }]);
+    renderPagina();
+
+    await screen.findByText('Sin áreas todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear área/i }));
+    await userEvent.type(screen.getByLabelText('Nombre'), 'RRHH');
+    await userEvent.type(screen.getByLabelText('Código'), 'RRHH');
+
+    await userEvent.click(screen.getByLabelText('Asignar líder de área'));
+    await userEvent.type(screen.getByLabelText('Apellido del líder'), 'Pérez');
+    await userEvent.type(screen.getByLabelText('Email del líder'), 'jperez@istho.com.co');
+    await userEvent.type(screen.getByLabelText('Contraseña del líder'), 'Clave123!');
+    await userEvent.selectOptions(screen.getByLabelText('Rol del líder'), '3');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    expect(await screen.findByText('El nombre del líder es obligatorio')).toBeInTheDocument();
+    expect(areaService.crear).not.toHaveBeenCalled();
+  });
+
+  it('shows a validation error and blocks submission when "Usuario líder" is left unselected', async () => {
+    useAuth.mockReturnValue({ isAdmin: true });
+    areaService.listar.mockResolvedValue([]);
+    usuarioService.listar.mockResolvedValue([{ id: 7, nombre: 'Ana', apellido: 'Gómez', username: 'agomez' }]);
+    renderPagina();
+
+    await screen.findByText('Sin áreas todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear área/i }));
+    await userEvent.type(screen.getByLabelText('Nombre'), 'TI');
+    await userEvent.type(screen.getByLabelText('Código'), 'TI');
+
+    await userEvent.click(screen.getByLabelText('Asignar líder de área'));
+    await userEvent.click(screen.getByLabelText('Usuario existente'));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    expect(await screen.findByText('El usuario líder es obligatorio')).toBeInTheDocument();
+    expect(areaService.crear).not.toHaveBeenCalled();
   });
 });

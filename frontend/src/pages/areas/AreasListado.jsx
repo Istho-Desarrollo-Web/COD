@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSnackbar } from 'notistack';
-import { Plus, Building2 } from 'lucide-react';
+import { Plus, Building2, AlertCircle } from 'lucide-react';
 import areaService from '../../api/area.service';
 import usuarioService from '../../api/usuario.service';
 import rolService from '../../api/rol.service';
@@ -210,17 +210,32 @@ export default function AreasListado() {
 
               {modoLider === 'nuevo' && (
                 <>
-                  <Input label="Nombre del líder" {...register('liderNombre', { required: asignarLider && modoLider === 'nuevo' })} />
+                  <Input
+                    label="Nombre del líder"
+                    error={errors.liderNombre?.message}
+                    {...register('liderNombre', { required: 'El nombre del líder es obligatorio' })}
+                  />
                   <Input
                     label="Apellido del líder"
-                    {...register('liderApellido', { required: asignarLider && modoLider === 'nuevo', onBlur: onApellidoLiderBlur })}
+                    error={errors.liderApellido?.message}
+                    {...register('liderApellido', { required: 'El apellido del líder es obligatorio', onBlur: onApellidoLiderBlur })}
                   />
-                  <Input label="Email del líder" type="email" {...register('liderEmail', { required: asignarLider && modoLider === 'nuevo' })} />
-                  <Input label="Username del líder" {...register('liderUsername', { required: asignarLider && modoLider === 'nuevo' })} />
+                  <Input
+                    label="Email del líder"
+                    type="email"
+                    error={errors.liderEmail?.message}
+                    {...register('liderEmail', { required: 'El email del líder es obligatorio' })}
+                  />
+                  <Input
+                    label="Username del líder"
+                    error={errors.liderUsername?.message}
+                    {...register('liderUsername', { required: 'El username del líder es obligatorio' })}
+                  />
                   <Input
                     label="Contraseña del líder"
                     type="password"
-                    {...register('liderPassword', { required: asignarLider && modoLider === 'nuevo' })}
+                    error={errors.liderPassword?.message}
+                    {...register('liderPassword', { required: 'La contraseña del líder es obligatoria' })}
                   />
                   <div>
                     <label htmlFor="lider-rolId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
@@ -229,7 +244,7 @@ export default function AreasListado() {
                     <select
                       id="lider-rolId"
                       className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-                      {...register('liderRolId', { required: asignarLider && modoLider === 'nuevo' })}
+                      {...register('liderRolId', { required: 'El rol del líder es obligatorio' })}
                     >
                       <option value="">Selecciona un rol</option>
                       {roles.map((rol) => (
@@ -238,6 +253,12 @@ export default function AreasListado() {
                         </option>
                       ))}
                     </select>
+                    {errors.liderRolId?.message && (
+                      <p role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" aria-hidden="true" />
+                        {errors.liderRolId.message}
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -250,7 +271,7 @@ export default function AreasListado() {
                   <select
                     id="lider-usuarioId"
                     className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-                    {...register('liderUsuarioId', { required: asignarLider && modoLider === 'existente' })}
+                    {...register('liderUsuarioId', { required: 'El usuario líder es obligatorio' })}
                   >
                     <option value="">Selecciona un usuario</option>
                     {usuariosExistentes.map((usuario) => (
@@ -259,6 +280,12 @@ export default function AreasListado() {
                       </option>
                     ))}
                   </select>
+                  {errors.liderUsuarioId?.message && (
+                    <p role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" aria-hidden="true" />
+                      {errors.liderUsuarioId.message}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
