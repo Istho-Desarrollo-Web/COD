@@ -46,6 +46,25 @@ describe('DatePicker', () => {
     expect(handleChange).toHaveBeenCalledWith('');
   });
 
+  it('is keyboard-focusable and calls onChange with an empty string on Enter', () => {
+    const handleChange = vi.fn();
+    const { container } = render(<DatePicker value="2026-05-08" onChange={handleChange} />);
+    const clearBtn = container.querySelector('span[role="button"]');
+    expect(clearBtn).toHaveAttribute('tabindex', '0');
+    clearBtn.focus();
+    expect(clearBtn).toHaveFocus();
+    fireEvent.keyDown(clearBtn, { key: 'Enter' });
+    expect(handleChange).toHaveBeenCalledWith('');
+  });
+
+  it('calls onChange with an empty string when the clear button receives a Space keydown', () => {
+    const handleChange = vi.fn();
+    const { container } = render(<DatePicker value="2026-05-08" onChange={handleChange} />);
+    const clearBtn = container.querySelector('span[role="button"]');
+    fireEvent.keyDown(clearBtn, { key: ' ' });
+    expect(handleChange).toHaveBeenCalledWith('');
+  });
+
   it('does not show a clear button when clearable is false', () => {
     const { container } = render(<DatePicker value="2026-05-08" onChange={vi.fn()} clearable={false} />);
     expect(container.querySelector('span[role="button"]')).not.toBeInTheDocument();

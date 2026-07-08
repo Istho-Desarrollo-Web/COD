@@ -24,6 +24,7 @@ import DatePicker from '../../components/common/DatePicker/DatePicker';
 import { validarArchivo, TIPOS_PERMITIDOS } from '../../utils/validarArchivo';
 
 const ESTADOS = [
+  { value: '', label: 'Todos' },
   { value: 'vigente', label: 'vigente' },
   { value: 'por_vencer', label: 'por vencer' },
   { value: 'vencido', label: 'vencido' },
@@ -249,7 +250,7 @@ export default function DocumentosListado() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <FilterDropdown
           label="Área"
-          options={areas.map((area) => ({ value: area.id, label: area.nombre }))}
+          options={[{ value: '', label: 'Todas' }, ...areas.map((area) => ({ value: area.id, label: area.nombre }))]}
           value={filtros.areaId}
           onChange={(valor) => actualizarFiltro('areaId', valor)}
           placeholder="Todas"
@@ -257,7 +258,7 @@ export default function DocumentosListado() {
 
         <FilterDropdown
           label="Carpeta"
-          options={carpetas.map((carpeta) => ({ value: carpeta.id, label: carpeta.ruta }))}
+          options={[{ value: '', label: 'Todas' }, ...carpetas.map((carpeta) => ({ value: carpeta.id, label: carpeta.ruta }))]}
           value={filtros.carpetaId}
           onChange={(valor) => actualizarFiltro('carpetaId', valor)}
           placeholder="Todas"
@@ -266,7 +267,7 @@ export default function DocumentosListado() {
 
         <FilterDropdown
           label="Tipo"
-          options={tipos.map((tipo) => ({ value: tipo.id, label: tipo.nombre }))}
+          options={[{ value: '', label: 'Todos' }, ...tipos.map((tipo) => ({ value: tipo.id, label: tipo.nombre }))]}
           value={filtros.tipoDocumentoId}
           onChange={(valor) => actualizarFiltro('tipoDocumentoId', valor)}
           placeholder="Todos"

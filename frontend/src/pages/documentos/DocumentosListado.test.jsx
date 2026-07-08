@@ -117,6 +117,17 @@ describe('DocumentosListado', () => {
     await waitFor(() => expect(carpetaService.listar).toHaveBeenLastCalledWith(1));
   });
 
+  it('allows resetting the área filter back to "Todas" after selecting a value', async () => {
+    renderPagina();
+    await screen.findByText('Manual RH');
+
+    await seleccionarFiltro('Área', 'RRHH');
+    await waitFor(() => expect(documentoService.listar).toHaveBeenLastCalledWith(expect.objectContaining({ areaId: 1 })));
+
+    await seleccionarFiltro('Área', 'Todas');
+    await waitFor(() => expect(documentoService.listar).toHaveBeenLastCalledWith(expect.objectContaining({ areaId: undefined })));
+  });
+
   it('keeps the "Carpeta" filter disabled until an área is chosen', async () => {
     renderPagina();
     await screen.findByText('Manual RH');

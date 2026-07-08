@@ -126,6 +126,13 @@ const DatePicker = ({
     onChange?.('');
   };
 
+  const handleClearKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClear(e);
+    }
+  };
+
   const prevMonth = () => setDisplayMonth(new Date(currentYear, currentMonth - 1));
   const nextMonth = () => setDisplayMonth(new Date(currentYear, currentMonth + 1));
 
@@ -156,8 +163,9 @@ const DatePicker = ({
           {clearable && selected && (
             <span
               role="button"
-              tabIndex={-1}
+              tabIndex={0}
               onClick={handleClear}
+              onKeyDown={handleClearKeyDown}
               className="text-slate-400 hover:text-red-500 transition-colors p-0.5 rounded"
             >
               <X className="w-3.5 h-3.5" />
