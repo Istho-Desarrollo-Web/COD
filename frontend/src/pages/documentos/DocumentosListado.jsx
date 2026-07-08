@@ -1,6 +1,6 @@
 // frontend/src/pages/documentos/DocumentosListado.jsx
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useForm, Controller } from 'react-hook-form';
 import { FileText, FolderCog, Plus } from 'lucide-react';
@@ -35,7 +35,18 @@ const TIPOS_PERMITIDOS_ACCEPT = Array.from(TIPOS_PERMITIDOS).join(',');
 export function aplanarCarpetas(arbol, prefijo = '') {
   return arbol.flatMap((carpeta) => {
     const ruta = prefijo ? `${prefijo} / ${carpeta.nombre}` : carpeta.nombre;
-    return [{ id: carpeta.id, nombre: carpeta.nombre, ruta, areaId: carpeta.areaId }, ...aplanarCarpetas(carpeta.subcarpetas || [], ruta)];
+    return [
+      {
+        id: carpeta.id,
+        nombre: carpeta.nombre,
+        ruta,
+        areaId: carpeta.areaId,
+        carpetaPadreId: carpeta.carpetaPadreId,
+        createdAt: carpeta.createdAt,
+        subcarpetasCount: (carpeta.subcarpetas || []).length,
+      },
+      ...aplanarCarpetas(carpeta.subcarpetas || [], ruta),
+    ];
   });
 }
 
@@ -66,6 +77,7 @@ function DocumentoCard({ documento, nombresPorId, onClick }) {
 
 export default function DocumentosListado() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { tienePermiso } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const { modo, setModo, esVistaMovil } = useViewMode('cod_view_documentos');
@@ -77,7 +89,17 @@ export default function DocumentosListado() {
   const [paginacion, setPaginacion] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [cargando, setCargando] = useState(true);
   const [crearModalAbierto, setCrearModalAbierto] = useState(false);
-  const [filtros, setFiltros] = useState({ areaId: '', carpetaId: '', tipoDocumentoId: '', estado: '', page: 1 });
+  const [filtros, setFiltros] = useState(() => {
+    const areaIdParam = searchParams.get('areaId');
+    const carpetaIdParam = searchParams.get('carpetaId');
+    return {
+      areaId: areaIdParam ? Number(areaIdParam) : '',
+      carpetaId: carpetaIdParam ? Number(carpetaIdParam) : '',
+      tipoDocumentoId: '',
+      estado: '',
+      page: 1,
+    };
+  });
 
   const [archivoError, setArchivoError] = useState(null);
   const {

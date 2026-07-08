@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import DocumentosListado from './DocumentosListado';
+import DocumentosListado, { aplanarCarpetas } from './DocumentosListado';
 import documentoService from '../../api/documento.service';
 import carpetaService from '../../api/carpeta.service';
 import tipoDocumentoService from '../../api/tipoDocumento.service';
@@ -22,9 +22,33 @@ const CARPETAS_ARBOL = [{ id: 10, nombre: 'Contratos', areaId: 1, carpetaPadreId
 const DOCUMENTOS = [{ id: 1, nombre: 'Manual RH', codigo: 'RH-001', areaId: 1, carpetaId: 10, tipoDocumentoId: 1, estado: 'vigente' }];
 const PAGINACION = { page: 1, limit: 20, total: 1, totalPages: 1 };
 
-function renderPagina() {
+describe('aplanarCarpetas', () => {
+  it('includes carpetaPadreId, createdAt, and subcarpetasCount for each flattened carpeta', () => {
+    const arbol = [
+      {
+        id: 1,
+        nombre: 'Contratos',
+        areaId: 1,
+        carpetaPadreId: null,
+        createdAt: '2026-01-05T00:00:00.000Z',
+        subcarpetas: [
+          { id: 2, nombre: 'Nómina', areaId: 1, carpetaPadreId: 1, createdAt: '2026-02-10T00:00:00.000Z', subcarpetas: [] },
+        ],
+      },
+    ];
+
+    const plano = aplanarCarpetas(arbol);
+
+    expect(plano).toEqual([
+      { id: 1, nombre: 'Contratos', ruta: 'Contratos', areaId: 1, carpetaPadreId: null, createdAt: '2026-01-05T00:00:00.000Z', subcarpetasCount: 1 },
+      { id: 2, nombre: 'Nómina', ruta: 'Contratos / Nómina', areaId: 1, carpetaPadreId: 1, createdAt: '2026-02-10T00:00:00.000Z', subcarpetasCount: 0 },
+    ]);
+  });
+});
+
+function renderPagina(ruta = '/documentos') {
   return render(
-    <MemoryRouter initialEntries={['/documentos']}>
+    <MemoryRouter initialEntries={[ruta]}>
       <SnackbarProvider>
         <Routes>
           <Route path="/documentos" element={<DocumentosListado />} />
@@ -136,6 +160,17 @@ describe('DocumentosListado', () => {
 
     await seleccionarFiltro('Área', 'RRHH');
     await waitFor(() => expect(screen.getByLabelText('Carpeta')).not.toBeDisabled());
+  });
+
+  it('seeds the Área and Carpeta filters from areaId/carpetaId query params on mount', async () => {
+    renderPagina('/documentos?areaId=1&carpetaId=10');
+
+    await waitFor(() => expect(documentoService.listar).toHaveBeenCalledWith(expect.objectContaining({ areaId: 1, carpetaId: 10, page: 1 })));
+    // Both dropdowns' displayed labels depend on their own catalog ("areas"/"carpetas"
+    // state) finishing its separate async load — wait for each independently rather
+    // than assuming they've resolved by the time documentoService.listar has been called.
+    await waitFor(() => expect(screen.getByLabelText('Área')).toHaveTextContent('RRHH'));
+    await waitFor(() => expect(screen.getByLabelText('Carpeta')).toHaveTextContent('Contratos'));
   });
 
   it('requests the next page when Pagination fires onPageChange', async () => {
