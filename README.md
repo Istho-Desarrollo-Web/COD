@@ -60,3 +60,13 @@ npm test
 El módulo Documentos (`/documentos`) ya está implementado: listado con filtros (área, carpeta, tipo, estado) y paginación, creación con subida de archivo, y detalle (`/documentos/:id`) con edición de metadata, historial de versiones, subida de nueva versión, y descarga de archivos.
 
 El módulo de Usuarios (`Administración > Usuarios`) ya está implementado: listado, creación, edición (incluye reseteo de contraseña) y baja lógica. El modal "Crear área" permite asignar un líder creando un usuario nuevo inline o eligiendo uno existente.
+
+### Convenciones de nombres (estado y variables)
+
+- **Idioma:** nombres de estado, props y campos de dominio en español (`cargando`, `modalAbierto`, `usuarios`, `areaId`), consistente con el resto del código. Excepción deliberada: los campos de paginación (`page`, `limit`, `total`, `totalPages`) se dejan en inglés porque replican 1:1 el contrato del backend (mismos nombres en el query param y en el envelope de `paginated()` — ver `server/src/utils/responses.js`); traducirlos solo agregaría una capa de mapeo sin beneficio.
+- **Booleanos:** adjetivo o gerundio en español, sin prefijo `is`/`es`/`tiene` (`cargando`, `enviando`, `modalAbierto`, `activo`). `useViewMode.js`'s `esVistaMovil` es una excepción heredada — no replicar ese prefijo en código nuevo.
+- **Estados de error:** sufijo `Error` después del concepto (`archivoError`, `archivoVersionError`). `Login.jsx`'s `errorApi` es una excepción heredada (prefijo) — en código nuevo usar el sufijo.
+- **Setters:** siempre `[x, setX]` con el mismo casing exacto del estado — ya se sigue así en todo el código, mantenerlo.
+- **Parámetros de submit de formularios:** siempre `valores` (nunca `data`/`datos`/`values`) para el objeto que entrega `handleSubmit` — ya es 100% consistente, mantenerlo.
+
+Estas reglas aplican a código nuevo; no se hizo un refactor retroactivo del código existente.
