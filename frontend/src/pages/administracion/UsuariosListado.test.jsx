@@ -128,6 +128,19 @@ describe('UsuariosListado', () => {
     await waitFor(() => expect(usuarioService.eliminar).toHaveBeenCalledWith(1));
   });
 
+  it('does not expose the tarjeta as a fake button without the editar permission', async () => {
+    localStorage.setItem('cod_view_usuarios', 'tarjetas');
+    useAuth.mockReturnValue({ tienePermiso: () => false });
+    usuarioService.listar.mockResolvedValue([
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: true },
+    ]);
+    renderPagina();
+
+    await screen.findByText('@jperez');
+    expect(screen.queryByRole('button', { name: /jperez/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Juan Pérez').closest('div[role="button"]')).toBeNull();
+  });
+
   it('shows an error when loading usuarios fails', async () => {
     useAuth.mockReturnValue({ tienePermiso: () => false });
     usuarioService.listar.mockRejectedValue(new Error('Network error'));

@@ -16,13 +16,14 @@ import ViewToggle from '../../components/common/ViewToggle';
 import StatusChip from '../../components/common/StatusChip/StatusChip';
 
 function UsuarioCard({ usuario, nombreRol, onEditar }) {
+  const interactivo = Boolean(onEditar);
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onEditar}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onEditar()}
-      className="bg-white dark:bg-centhrix-card rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 cursor-pointer"
+      role={interactivo ? 'button' : undefined}
+      tabIndex={interactivo ? 0 : undefined}
+      onClick={interactivo ? onEditar : undefined}
+      onKeyDown={interactivo ? (e) => (e.key === 'Enter' || e.key === ' ') && onEditar() : undefined}
+      className={`bg-white dark:bg-centhrix-card rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700${interactivo ? ' cursor-pointer' : ''}`}
     >
       <div className="flex items-start justify-between mb-3">
         <div>
@@ -209,7 +210,7 @@ export default function UsuariosListado() {
               key={usuario.id}
               usuario={usuario}
               nombreRol={nombresPorRolId[usuario.rolId] || usuario.rolId}
-              onEditar={puedeEditar ? () => abrirEditar(usuario) : () => {}}
+              onEditar={puedeEditar ? () => abrirEditar(usuario) : undefined}
             />
           ))}
         </div>
