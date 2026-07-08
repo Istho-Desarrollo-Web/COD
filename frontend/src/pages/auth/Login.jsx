@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
+import centhrixLogo from '../../assets/centhrix-logo.png';
 
 export default function Login() {
   const { login } = useAuth();
@@ -34,6 +35,16 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-centhrix-bg dark:to-centhrix-bg px-4">
       <div className="w-full max-w-sm bg-white dark:bg-centhrix-card rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-8">
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <img src={centhrixLogo} alt="Centhrix" className="h-12 w-auto" />
+          <div className="h-10 w-px bg-slate-200 dark:bg-slate-700" />
+          <div
+            className="h-12 w-24 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center"
+            title="Espacio reservado para el logo de COD"
+          >
+            <span className="text-[10px] text-slate-300 dark:text-slate-600 font-medium">Logo COD</span>
+          </div>
+        </div>
         <h1 className="text-2xl font-display font-bold text-slate-800 dark:text-slate-100 mb-1 text-center">COD</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Centro Operativo Documental</p>
 
