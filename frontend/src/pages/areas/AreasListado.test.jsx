@@ -4,9 +4,13 @@ import { vi } from 'vitest';
 import { SnackbarProvider } from 'notistack';
 import AreasListado from './AreasListado';
 import areaService from '../../api/area.service';
+import usuarioService from '../../api/usuario.service';
+import rolService from '../../api/rol.service';
 import { useAuth } from '../../context/AuthContext';
 
 vi.mock('../../api/area.service');
+vi.mock('../../api/usuario.service');
+vi.mock('../../api/rol.service');
 vi.mock('../../context/AuthContext');
 
 function renderPagina() {
@@ -21,6 +25,8 @@ describe('AreasListado', () => {
   beforeEach(() => {
     localStorage.clear();
     window.innerWidth = 1280;
+    usuarioService.listar.mockResolvedValue([]);
+    rolService.listar.mockResolvedValue([]);
   });
 
   it('renders the empty state when there are no areas', async () => {
@@ -102,5 +108,79 @@ describe('AreasListado', () => {
     expect(await screen.findByText('El código ya existe')).toBeInTheDocument();
     expect(screen.getByLabelText('Nombre')).toHaveValue('SGI');
     expect(screen.getByLabelText('Código')).toHaveValue('SGI');
+  });
+
+  it('creates an area without a líder when the checkbox is left unchecked', async () => {
+    useAuth.mockReturnValue({ isAdmin: true });
+    areaService.listar.mockResolvedValue([]);
+    areaService.crear.mockResolvedValue({ id: 1, nombre: 'SGI', codigo: 'SGI' });
+    renderPagina();
+
+    await screen.findByText('Sin áreas todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear área/i }));
+    await userEvent.type(screen.getByLabelText('Nombre'), 'SGI');
+    await userEvent.type(screen.getByLabelText('Código'), 'SGI');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() => expect(areaService.crear).toHaveBeenCalledWith({ nombre: 'SGI', codigo: 'SGI' }));
+  });
+
+  it('creates a new lider usuario inline when "Asignar líder de área" and "Usuario nuevo" are used', async () => {
+    useAuth.mockReturnValue({ isAdmin: true });
+    areaService.listar.mockResolvedValue([]);
+    rolService.listar.mockResolvedValue([{ id: 3, nombre: 'lider_area' }]);
+    areaService.crear.mockResolvedValue({ id: 1, nombre: 'RRHH', codigo: 'RRHH', liderUsuarioId: 10 });
+    renderPagina();
+
+    await screen.findByText('Sin áreas todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear área/i }));
+    await userEvent.type(screen.getByLabelText('Nombre'), 'RRHH');
+    await userEvent.type(screen.getByLabelText('Código'), 'RRHH');
+
+    await userEvent.click(screen.getByLabelText('Asignar líder de área'));
+    await userEvent.type(screen.getByLabelText('Nombre del líder'), 'Juan');
+    await userEvent.type(screen.getByLabelText('Apellido del líder'), 'Pérez');
+    await userEvent.type(screen.getByLabelText('Email del líder'), 'jperez@istho.com.co');
+    await userEvent.type(screen.getByLabelText('Contraseña del líder'), 'Clave123!');
+    await userEvent.selectOptions(screen.getByLabelText('Rol del líder'), '3');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() =>
+      expect(areaService.crear).toHaveBeenCalledWith({
+        nombre: 'RRHH',
+        codigo: 'RRHH',
+        nuevoUsuario: {
+          username: 'jperez',
+          email: 'jperez@istho.com.co',
+          nombre: 'Juan',
+          apellido: 'Pérez',
+          password: 'Clave123!',
+          rolId: 3,
+          requiereCambioPassword: true,
+        },
+      })
+    );
+  });
+
+  it('assigns an existing usuario as líder when "Usuario existente" is selected', async () => {
+    useAuth.mockReturnValue({ isAdmin: true });
+    areaService.listar.mockResolvedValue([]);
+    usuarioService.listar.mockResolvedValue([{ id: 7, nombre: 'Ana', apellido: 'Gómez', username: 'agomez' }]);
+    areaService.crear.mockResolvedValue({ id: 1, nombre: 'TI', codigo: 'TI', liderUsuarioId: 7 });
+    renderPagina();
+
+    await screen.findByText('Sin áreas todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear área/i }));
+    await userEvent.type(screen.getByLabelText('Nombre'), 'TI');
+    await userEvent.type(screen.getByLabelText('Código'), 'TI');
+
+    await userEvent.click(screen.getByLabelText('Asignar líder de área'));
+    await userEvent.click(screen.getByLabelText('Usuario existente'));
+    await userEvent.selectOptions(screen.getByLabelText('Usuario líder'), '7');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() => expect(areaService.crear).toHaveBeenCalledWith({ nombre: 'TI', codigo: 'TI', liderUsuarioId: 7 }));
   });
 });

@@ -5,8 +5,8 @@ async function listar() {
   return response.data;
 }
 
-async function crear({ nombre, codigo }) {
-  const response = await apiClient.post('/areas', { nombre, codigo });
+async function crear(datos) {
+  const response = await apiClient.post('/areas', datos);
   return response.data;
 }
 
