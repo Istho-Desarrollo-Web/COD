@@ -43,6 +43,37 @@ describe('UsuariosListado', () => {
     expect(await screen.findByText('lider_area')).toBeInTheDocument();
   });
 
+  it('shows both the role name and the active/inactive state on the tarjeta, without relying on chip color alone', async () => {
+    localStorage.setItem('cod_view_usuarios', 'tarjetas');
+    useAuth.mockReturnValue({ tienePermiso: () => false });
+    usuarioService.listar.mockResolvedValue([
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: false },
+    ]);
+    renderPagina();
+
+    expect(await screen.findByText('lider_area')).toBeInTheDocument();
+    expect(screen.getByText('inactivo')).toBeInTheDocument();
+  });
+
+  it('shows a validation error and blocks creation when "Rol" is left unselected', async () => {
+    useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'usuarios' && accion === 'crear' });
+    usuarioService.listar.mockResolvedValue([]);
+    renderPagina();
+
+    await screen.findByText('Sin usuarios todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear usuario/i }));
+
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Juan');
+    await userEvent.type(screen.getByLabelText('Apellido'), 'Pérez');
+    await userEvent.type(screen.getByLabelText('Email'), 'jperez@istho.com.co');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'Clave123!');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    expect(await screen.findByText('El rol es obligatorio')).toBeInTheDocument();
+    expect(usuarioService.crear).not.toHaveBeenCalled();
+  });
+
   it('hides "Crear usuario" without the crear permission', async () => {
     useAuth.mockReturnValue({ tienePermiso: () => false });
     usuarioService.listar.mockResolvedValue([]);

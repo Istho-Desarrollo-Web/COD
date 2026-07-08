@@ -208,6 +208,44 @@ describe('AreasListado', () => {
     expect(areaService.crear).not.toHaveBeenCalled();
   });
 
+  it('pre-selects the "lider_area" role once the catalog loads, but still lets the admin change it', async () => {
+    useAuth.mockReturnValue({ isAdmin: true });
+    areaService.listar.mockResolvedValue([]);
+    rolService.listar.mockResolvedValue([
+      { id: 3, nombre: 'lider_area' },
+      { id: 5, nombre: 'admin' },
+    ]);
+    areaService.crear.mockResolvedValue({ id: 1, nombre: 'RRHH', codigo: 'RRHH' });
+    renderPagina();
+
+    await screen.findByText('Sin áreas todavía');
+    await userEvent.click(screen.getByRole('button', { name: /crear área/i }));
+
+    await userEvent.click(screen.getByLabelText('Asignar líder de área'));
+
+    await waitFor(() => expect(screen.getByLabelText('Rol del líder')).toHaveValue('3'));
+
+    await userEvent.selectOptions(screen.getByLabelText('Rol del líder'), '5');
+    expect(screen.getByLabelText('Rol del líder')).toHaveValue('5');
+
+    await userEvent.type(screen.getByLabelText('Nombre'), 'RRHH');
+    await userEvent.type(screen.getByLabelText('Código'), 'RRHH');
+    await userEvent.type(screen.getByLabelText('Nombre del líder'), 'Juan');
+    await userEvent.type(screen.getByLabelText('Apellido del líder'), 'Pérez');
+    await userEvent.type(screen.getByLabelText('Email del líder'), 'jperez@istho.com.co');
+    await userEvent.type(screen.getByLabelText('Contraseña del líder'), 'Clave123!');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() =>
+      expect(areaService.crear).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nuevoUsuario: expect.objectContaining({ rolId: 5 }),
+        })
+      )
+    );
+  });
+
   it('shows a validation error and blocks submission when "Usuario líder" is left unselected', async () => {
     useAuth.mockReturnValue({ isAdmin: true });
     areaService.listar.mockResolvedValue([]);

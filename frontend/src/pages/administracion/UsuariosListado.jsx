@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSnackbar } from 'notistack';
-import { Plus, UserRound } from 'lucide-react';
+import { Plus, UserRound, AlertCircle } from 'lucide-react';
 import usuarioService from '../../api/usuario.service';
 import rolService from '../../api/rol.service';
 import { useAuth } from '../../context/AuthContext';
@@ -34,7 +34,8 @@ function UsuarioCard({ usuario, nombreRol, onEditar }) {
         </div>
         <UserRound className="w-8 h-8 text-slate-300 dark:text-slate-600" />
       </div>
-      <StatusChip status={usuario.activo ? 'activo' : 'inactivo'} customLabel={nombreRol} />
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{nombreRol}</p>
+      <StatusChip status={usuario.activo ? 'activo' : 'inactivo'} />
     </div>
   );
 }
@@ -262,7 +263,7 @@ export default function UsuariosListado() {
             <select
               id="usuario-rolId"
               className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-              {...register('rolId', { required: true })}
+              {...register('rolId', { required: 'El rol es obligatorio' })}
             >
               <option value="">Selecciona un rol</option>
               {roles.map((rol) => (
@@ -271,6 +272,12 @@ export default function UsuariosListado() {
                 </option>
               ))}
             </select>
+            {errors.rolId?.message && (
+              <p role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" aria-hidden="true" />
+                {errors.rolId.message}
+              </p>
+            )}
           </div>
 
           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">

@@ -94,6 +94,18 @@ export default function AreasListado() {
     cargarCatalogosLider();
   }, [asignarLider]);
 
+  // Preselecciona el rol "lider_area" apenas el catálogo de roles termina de
+  // renderizarse (las <option> deben existir en el DOM antes de fijar el
+  // value del <select>). Solo corre cuando `roles` cambia (una vez por carga
+  // de catálogo), así que no pisa una selección manual posterior del admin.
+  useEffect(() => {
+    if (roles.length === 0) return;
+    const rolLiderArea = roles.find((rol) => rol.nombre === 'lider_area');
+    if (rolLiderArea) {
+      setValue('liderRolId', String(rolLiderArea.id));
+    }
+  }, [roles, setValue]);
+
   function onApellidoLiderBlur() {
     if (nombreLiderForm && apellidoLiderForm) {
       setValue('liderUsername', sugerirUsername(nombreLiderForm, apellidoLiderForm));
