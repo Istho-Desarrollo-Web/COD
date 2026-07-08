@@ -3,11 +3,18 @@ import userEvent from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import CarpetasGestion from './CarpetasGestion';
+import DocumentosListado from './DocumentosListado';
 import carpetaService from '../../api/carpeta.service';
 import areaService from '../../api/area.service';
+import documentoService from '../../api/documento.service';
+import tipoDocumentoService from '../../api/tipoDocumento.service';
+import { useAuth } from '../../context/AuthContext';
 
 vi.mock('../../api/carpeta.service');
 vi.mock('../../api/area.service');
+vi.mock('../../api/documento.service');
+vi.mock('../../api/tipoDocumento.service');
+vi.mock('../../context/AuthContext');
 
 const AREAS = [
   { id: 1, nombre: 'RRHH' },
@@ -50,6 +57,7 @@ describe('CarpetasGestion', () => {
   beforeEach(() => {
     areaService.listar.mockResolvedValue(AREAS);
     carpetaService.listar.mockResolvedValue(ARBOL);
+    useAuth.mockReturnValue({ tienePermiso: () => false });
   });
 
   it('shows the root-level carpetas of the chosen área as cards', async () => {
@@ -92,6 +100,25 @@ describe('CarpetasGestion', () => {
     await screen.findByRole('button', { name: 'Contratos' });
 
     await userEvent.click(screen.getByRole('button', { name: 'Ver detalle de Contratos' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nómina' })).not.toBeInTheDocument();
+  });
+
+  it('activating the info button via keyboard opens the detail modal without also navigating into the carpeta', async () => {
+    renderPagina();
+    await elegirArea('RRHH');
+    await screen.findByRole('button', { name: 'Contratos' });
+
+    screen.getByRole('button', { name: 'Ver detalle de Contratos' }).focus();
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nómina' })).not.toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    screen.getByRole('button', { name: 'Ver detalle de Contratos' }).focus();
+    await userEvent.keyboard(' ');
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nómina' })).not.toBeInTheDocument();
@@ -191,5 +218,28 @@ describe('CarpetasGestion', () => {
   it('navigates back to Documentos', async () => {
     renderPagina();
     expect(screen.getByRole('link', { name: /volver a documentos/i })).toHaveAttribute('href', '/documentos');
+  });
+
+  it('lands on the real DocumentosListado, pre-filtered, after "Ver documentos de esta carpeta"', async () => {
+    documentoService.listar.mockResolvedValue({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } });
+    tipoDocumentoService.listar.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={['/documentos/carpetas']}>
+        <SnackbarProvider>
+          <Routes>
+            <Route path="/documentos/carpetas" element={<CarpetasGestion />} />
+            <Route path="/documentos" element={<DocumentosListado />} />
+          </Routes>
+        </SnackbarProvider>
+      </MemoryRouter>
+    );
+
+    await elegirArea('RRHH');
+    await screen.findByRole('button', { name: 'Contratos' });
+    await userEvent.click(screen.getByRole('button', { name: 'Ver detalle de Contratos' }));
+    await userEvent.click(screen.getByRole('button', { name: /ver documentos de esta carpeta/i }));
+
+    await waitFor(() => expect(documentoService.listar).toHaveBeenCalledWith(expect.objectContaining({ areaId: 1, carpetaId: 10 })));
   });
 });

@@ -19,7 +19,13 @@ function CarpetaCard({ carpeta, onAbrir, onVerDetalle }) {
       tabIndex={0}
       aria-label={carpeta.nombre}
       onClick={onAbrir}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onAbrir()}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onAbrir();
+        }
+      }}
       className="bg-white dark:bg-centhrix-card rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 cursor-pointer flex items-start justify-between gap-2"
     >
       <div className="flex items-center gap-3 min-w-0">
