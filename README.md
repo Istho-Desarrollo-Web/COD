@@ -14,6 +14,7 @@ Proveedores/Contratistas y Repositorio documental SGI.
 - Diseño del frontend de Documentos (listado con filtros/paginación, creación con subida de archivo, detalle con edición e historial de versiones, gestión de carpetas): `docs/superpowers/specs/2026-07-07-cod-documentos-frontend-design.md`
 - Diseño de creación de usuario al crear un Área (módulo de Usuarios CRUD, endpoint de Roles de solo lectura, asignación de líder): `docs/superpowers/specs/2026-07-08-cod-usuario-al-crear-area-design.md`
 - Diseño de componentes portados del CRM Centhrix (DatePicker, FilterDropdown, AccionesDropdown) y de la pantalla de Gestión de carpetas: `docs/superpowers/specs/2026-07-08-cod-portar-componentes-crm-design.md`
+- Diseño de la vista de carpetas estilo Google Drive (navegación por tarjetas, migas de pan, y detalle de carpeta): `docs/superpowers/specs/2026-07-08-cod-carpetas-vista-drive-design.md`
 - Integración futura con el CRM: `docs/architecture/crm-integration.md`
 
 ## Backend (`server/`)
@@ -62,7 +63,7 @@ El módulo Documentos (`/documentos`) ya está implementado: listado con filtros
 
 El módulo de Usuarios (`Administración > Usuarios`) ya está implementado: listado, creación, edición (incluye reseteo de contraseña) y baja lógica. El modal "Crear área" permite asignar un líder creando un usuario nuevo inline o eligiendo uno existente.
 
-`DatePicker`, `FilterDropdown`, y `AccionesDropdown` (portados del CRM Centhrix) ya están disponibles en `components/common/` e integrados en el listado de Documentos (filtros, toolbar, y fechas de vigencia). La gestión de carpetas se hizo pantalla propia (`/documentos/carpetas`), reemplazando el modal anterior.
+La gestión de carpetas (`/documentos/carpetas`) es una vista de tarjetas navegable estilo Google Drive: se entra a una carpeta haciendo clic en su tarjeta, una miga de pan permite volver a cualquier nivel superior, un botón de información abre el detalle de una carpeta (ruta, fecha de creación, cantidad de subcarpetas, y acceso directo a sus documentos), y "Nueva carpeta" crea una carpeta con la carpeta padre implícita según el nivel donde se esté parado.
 
 ### Convenciones de nombres (estado y variables)
 
