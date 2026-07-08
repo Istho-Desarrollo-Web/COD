@@ -159,6 +159,34 @@ describe('Areas API', () => {
     expect(areaCreada).toBeNull();
   });
 
+  it('rolls back the just-created usuario when Area.create fails on a duplicate codigo', async () => {
+    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const sufijo = Date.now();
+    const codigoDuplicado = `DUPROLLBACK${sufijo}`;
+
+    // Pre-existing area occupies the codigo so Area.create fails AFTER
+    // Usuario.create has already succeeded inside the transaction.
+    await Area.create({ nombre: 'Área Existente', codigo: codigoDuplicado });
+
+    const nuevoUsuario = {
+      username: `lider_rollback_${sufijo}`,
+      email: `lider_rollback_${sufijo}@istho.com.co`,
+      nombre: 'Nuevo',
+      apellido: 'Lider',
+      password: 'ClaveLider123!',
+      rolId: liderRol.id,
+    };
+
+    const res = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nombre: 'Otra Vez Duplicada', codigo: codigoDuplicado, nuevoUsuario });
+    expect(res.status).toBe(409);
+
+    const usuarioCreado = await Usuario.findOne({ where: { username: nuevoUsuario.username } });
+    expect(usuarioCreado).toBeNull();
+  });
+
   it('creates an area with an existing usuario as líder (no nuevoUsuario)', async () => {
     const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
     const sufijo = Date.now();

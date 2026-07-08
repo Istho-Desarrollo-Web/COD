@@ -1,6 +1,6 @@
 const { Usuario, Rol, Auditoria } = require('../models');
 const { success, created, notFound, badRequest } = require('../utils/responses');
-const { hashearPassword } = require('../services/usuario.service');
+const { hashearPassword, validarDatosNuevoUsuario } = require('../services/usuario.service');
 
 async function listar(req, res) {
   const usuarios = await Usuario.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] });
@@ -16,12 +16,10 @@ async function obtener(req, res) {
 async function crear(req, res) {
   const { username, email, nombre, apellido, password, rolId, requiereCambioPassword } = req.body;
 
-  if (!username || !email || !nombre || !apellido || !password || !rolId) {
-    return badRequest(res, 'username, email, nombre, apellido, password y rolId son obligatorios');
+  const validacion = await validarDatosNuevoUsuario({ username, email, nombre, apellido, password, rolId }, Rol);
+  if (!validacion.valido) {
+    return validacion.status === 404 ? notFound(res, validacion.error) : badRequest(res, validacion.error);
   }
-
-  const rol = await Rol.findByPk(rolId);
-  if (!rol || !rol.activo) return notFound(res, 'Rol no encontrado');
 
   const passwordHash = await hashearPassword(password);
   const usuarioCreado = await Usuario.create({

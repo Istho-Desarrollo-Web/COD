@@ -1,7 +1,7 @@
 // server/src/controllers/area.controller.js
 const { Area, Usuario, Rol, Auditoria, sequelize } = require('../models');
 const { success, created, notFound, badRequest } = require('../utils/responses');
-const { hashearPassword } = require('../services/usuario.service');
+const { hashearPassword, validarDatosNuevoUsuario } = require('../services/usuario.service');
 
 async function listar(req, res) {
   const areas = await Area.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] });
@@ -16,12 +16,10 @@ async function crear(req, res) {
   }
 
   if (nuevoUsuario) {
-    const { username, email, nombre: nombreUsuario, apellido, password, rolId } = nuevoUsuario;
-    if (!username || !email || !nombreUsuario || !apellido || !password || !rolId) {
-      return badRequest(res, 'nuevoUsuario requiere username, email, nombre, apellido, password y rolId');
+    const validacion = await validarDatosNuevoUsuario(nuevoUsuario, Rol);
+    if (!validacion.valido) {
+      return validacion.status === 404 ? notFound(res, validacion.error) : badRequest(res, validacion.error);
     }
-    const rol = await Rol.findByPk(rolId);
-    if (!rol || !rol.activo) return notFound(res, 'Rol no encontrado');
   }
 
   if (liderUsuarioId) {

@@ -5,7 +5,7 @@ const compression = require('compression');
 const { sequelize, connectWithRetry } = require('./src/config/database');
 const { createMigrator } = require('./src/config/migrator');
 const { programar: programarRecalculoEstados } = require('./src/jobs/recalcularEstadosDocumentos.job');
-const { error, conflict, serverError } = require('./src/utils/responses');
+const { error, conflict, serverError, badRequest } = require('./src/utils/responses');
 
 function validateEnv() {
   const isProduccion = process.env.NODE_ENV === 'production';
@@ -54,6 +54,9 @@ app.use('/api/v1', require('./src/routes'));
 app.use((err, req, res, next) => {
   if (err.name === 'SequelizeUniqueConstraintError') {
     return conflict(res, 'El registro ya existe', err);
+  }
+  if (err.name === 'SequelizeForeignKeyConstraintError') {
+    return badRequest(res, 'Referencia inválida', err);
   }
   if (err.name === 'SequelizeValidationError') {
     console.error(err);
