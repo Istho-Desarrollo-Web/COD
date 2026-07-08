@@ -83,20 +83,22 @@ export default function DocumentosListado() {
   const areaSeleccionadaCrear = watchCrear('areaId');
   const [carpetasCrear, setCarpetasCrear] = useState([]);
 
-  useEffect(() => {
-    async function cargar() {
-      if (!areaSeleccionadaCrear) {
-        setCarpetasCrear([]);
-        return;
-      }
-      try {
-        const arbol = await carpetaService.listar(Number(areaSeleccionadaCrear));
-        setCarpetasCrear(aplanarCarpetas(arbol));
-      } catch {
-        setCarpetasCrear([]);
-      }
+  async function cargarCarpetasCrear(area) {
+    if (!area) {
+      setCarpetasCrear([]);
+      return;
     }
-    cargar();
+    try {
+      const arbol = await carpetaService.listar(Number(area));
+      setCarpetasCrear(aplanarCarpetas(arbol));
+    } catch {
+      setCarpetasCrear([]);
+    }
+  }
+
+  useEffect(() => {
+    cargarCarpetasCrear(areaSeleccionadaCrear);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaSeleccionadaCrear]);
 
   async function onCrearDocumento(valores) {
@@ -145,21 +147,28 @@ export default function DocumentosListado() {
     cargarCatalogos();
   }, []);
 
-  useEffect(() => {
-    async function cargarCarpetas() {
-      if (!filtros.areaId) {
-        setCarpetas([]);
-        return;
-      }
-      try {
-        const arbol = await carpetaService.listar(Number(filtros.areaId));
-        setCarpetas(aplanarCarpetas(arbol));
-      } catch {
-        setCarpetas([]);
-      }
+  async function cargarCarpetasFiltro(area) {
+    if (!area) {
+      setCarpetas([]);
+      return;
     }
-    cargarCarpetas();
+    try {
+      const arbol = await carpetaService.listar(Number(area));
+      setCarpetas(aplanarCarpetas(arbol));
+    } catch {
+      setCarpetas([]);
+    }
+  }
+
+  useEffect(() => {
+    cargarCarpetasFiltro(filtros.areaId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros.areaId]);
+
+  function onCarpetaCreada(areaIdAfectada) {
+    if (filtros.areaId && Number(filtros.areaId) === areaIdAfectada) cargarCarpetasFiltro(filtros.areaId);
+    if (areaSeleccionadaCrear && Number(areaSeleccionadaCrear) === areaIdAfectada) cargarCarpetasCrear(areaSeleccionadaCrear);
+  }
 
   async function cargarDocumentos() {
     setCargando(true);
@@ -423,7 +432,12 @@ export default function DocumentosListado() {
         </form>
       </Modal>
 
-      <CarpetasModal isOpen={carpetasModalAbierto} onClose={() => setCarpetasModalAbierto(false)} areas={areas} />
+      <CarpetasModal
+        isOpen={carpetasModalAbierto}
+        onClose={() => setCarpetasModalAbierto(false)}
+        areas={areas}
+        onCarpetaCreada={onCarpetaCreada}
+      />
     </div>
   );
 }

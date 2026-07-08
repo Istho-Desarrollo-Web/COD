@@ -188,4 +188,31 @@ describe('DocumentosListado', () => {
 
     await waitFor(() => expect(carpetaService.crear).toHaveBeenCalledWith({ areaId: 1, nombre: 'Nueva', carpetaPadreId: null }));
   });
+
+  it('refreshes the "Carpeta" filter after creating a carpeta for the área currently selected in that filter', async () => {
+    useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'documentos' && accion === 'crear' });
+    carpetaService.crear.mockResolvedValue({ id: 20, nombre: 'Nueva' });
+    renderPagina();
+
+    await screen.findByText('Manual RH');
+    await userEvent.selectOptions(screen.getByLabelText('Área'), '1');
+    await waitFor(() => expect(carpetaService.listar).toHaveBeenCalledWith(1));
+
+    await userEvent.click(screen.getByRole('button', { name: /gestionar carpetas/i }));
+    await userEvent.selectOptions(screen.getByLabelText('Área de las carpetas'), '1');
+    await within(screen.getByRole('list')).findByText('Contratos');
+
+    // The refetch triggered by creation must pick up the new carpeta.
+    carpetaService.listar.mockResolvedValue([
+      ...CARPETAS_ARBOL,
+      { id: 20, nombre: 'Nueva', areaId: 1, carpetaPadreId: null, subcarpetas: [] },
+    ]);
+    await userEvent.type(screen.getByLabelText('Nombre de la nueva carpeta'), 'Nueva');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear carpeta' }));
+    await waitFor(() => expect(carpetaService.crear).toHaveBeenCalled());
+
+    // The "Carpeta" filter select lives outside CarpetasModal — without the
+    // onCarpetaCreada refresh wired up, this option would never appear.
+    await waitFor(() => expect(within(screen.getByLabelText('Carpeta')).getByText('Nueva')).toBeInTheDocument());
+  });
 });

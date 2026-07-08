@@ -8,7 +8,7 @@ import Modal from '../../components/common/Modal/Modal';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
 
-export default function CarpetasModal({ isOpen, onClose, areas }) {
+export default function CarpetasModal({ isOpen, onClose, areas, onCarpetaCreada }) {
   const { enqueueSnackbar } = useSnackbar();
   const [areaId, setAreaId] = useState('');
   const [carpetas, setCarpetas] = useState([]);
@@ -43,6 +43,7 @@ export default function CarpetasModal({ isOpen, onClose, areas }) {
       enqueueSnackbar('Carpeta creada exitosamente', { variant: 'success' });
       reset();
       await cargarCarpetas(areaId);
+      onCarpetaCreada?.(Number(areaId));
     } catch (error) {
       enqueueSnackbar(error?.message || 'No se pudo crear la carpeta', { variant: 'error' });
     }
@@ -109,4 +110,5 @@ CarpetasModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   areas: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.number.isRequired, nombre: PropTypes.string.isRequired })).isRequired,
+  onCarpetaCreada: PropTypes.func,
 };

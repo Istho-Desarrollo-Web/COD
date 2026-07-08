@@ -54,6 +54,21 @@ describe('CarpetasModal', () => {
     expect(within(screen.getByRole('list')).getByText('Contratos / Políticas')).toBeInTheDocument();
   });
 
+  it('notifies the parent with the affected area id after creating a carpeta', async () => {
+    carpetaService.listar.mockResolvedValue([{ id: 10, nombre: 'Contratos', carpetaPadreId: null, areaId: 1, subcarpetas: [] }]);
+    carpetaService.crear.mockResolvedValue({ id: 12, nombre: 'Políticas' });
+    const onCarpetaCreada = vi.fn();
+    renderModal({ onCarpetaCreada });
+
+    await userEvent.selectOptions(screen.getByLabelText('Área de las carpetas'), '1');
+    await within(screen.getByRole('list')).findByText('Contratos');
+
+    await userEvent.type(screen.getByLabelText('Nombre de la nueva carpeta'), 'Políticas');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear carpeta' }));
+
+    await waitFor(() => expect(onCarpetaCreada).toHaveBeenCalledWith(1));
+  });
+
   it('shows an error when creation fails', async () => {
     carpetaService.listar.mockResolvedValue([]);
     carpetaService.crear.mockRejectedValue(new Error('El nombre ya existe en esta área'));
