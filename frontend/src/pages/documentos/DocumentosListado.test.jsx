@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import DocumentosListado from './DocumentosListado';
 import documentoService from '../../api/documento.service';
 import carpetaService from '../../api/carpeta.service';
@@ -23,9 +23,12 @@ const PAGINACION = { page: 1, limit: 20, total: 1, totalPages: 1 };
 
 function renderPagina() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={['/documentos']}>
       <SnackbarProvider>
-        <DocumentosListado />
+        <Routes>
+          <Route path="/documentos" element={<DocumentosListado />} />
+          <Route path="/documentos/carpetas" element={<p>Gestión de carpetas</p>} />
+        </Routes>
       </SnackbarProvider>
     </MemoryRouter>
   );
@@ -173,46 +176,15 @@ describe('DocumentosListado', () => {
     expect(documentoService.crear).not.toHaveBeenCalled();
   });
 
-  it('opens "Gestionar carpetas" and creates a carpeta from the listado toolbar', async () => {
+  it('navigates to /documentos/carpetas when "Gestionar carpetas" is clicked', async () => {
     useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'documentos' && accion === 'crear' });
-    carpetaService.crear.mockResolvedValue({ id: 20, nombre: 'Nueva' });
     renderPagina();
 
     await screen.findByText('Manual RH');
     await userEvent.click(screen.getByRole('button', { name: /gestionar carpetas/i }));
-    await userEvent.selectOptions(screen.getByLabelText('Área de las carpetas'), '1');
-    await within(screen.getByRole('list')).findByText('Contratos');
 
-    await userEvent.type(screen.getByLabelText('Nombre de la nueva carpeta'), 'Nueva');
-    await userEvent.click(screen.getByRole('button', { name: 'Crear carpeta' }));
-
-    await waitFor(() => expect(carpetaService.crear).toHaveBeenCalledWith({ areaId: 1, nombre: 'Nueva', carpetaPadreId: null }));
-  });
-
-  it('refreshes the "Carpeta" filter after creating a carpeta for the área currently selected in that filter', async () => {
-    useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'documentos' && accion === 'crear' });
-    carpetaService.crear.mockResolvedValue({ id: 20, nombre: 'Nueva' });
-    renderPagina();
-
-    await screen.findByText('Manual RH');
-    await userEvent.selectOptions(screen.getByLabelText('Área'), '1');
-    await waitFor(() => expect(carpetaService.listar).toHaveBeenCalledWith(1));
-
-    await userEvent.click(screen.getByRole('button', { name: /gestionar carpetas/i }));
-    await userEvent.selectOptions(screen.getByLabelText('Área de las carpetas'), '1');
-    await within(screen.getByRole('list')).findByText('Contratos');
-
-    // The refetch triggered by creation must pick up the new carpeta.
-    carpetaService.listar.mockResolvedValue([
-      ...CARPETAS_ARBOL,
-      { id: 20, nombre: 'Nueva', areaId: 1, carpetaPadreId: null, subcarpetas: [] },
-    ]);
-    await userEvent.type(screen.getByLabelText('Nombre de la nueva carpeta'), 'Nueva');
-    await userEvent.click(screen.getByRole('button', { name: 'Crear carpeta' }));
-    await waitFor(() => expect(carpetaService.crear).toHaveBeenCalled());
-
-    // The "Carpeta" filter select lives outside CarpetasModal — without the
-    // onCarpetaCreada refresh wired up, this option would never appear.
-    await waitFor(() => expect(within(screen.getByLabelText('Carpeta')).getByText('Nueva')).toBeInTheDocument());
+    // DocumentosListado unmounts once /documentos/carpetas is rendered by MemoryRouter,
+    // so its absence here confirms the navigation actually happened.
+    await waitFor(() => expect(screen.queryByText('Documentos')).not.toBeInTheDocument());
   });
 });

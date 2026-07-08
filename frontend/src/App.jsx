@@ -10,6 +10,7 @@ import Dashboard from './pages/inicio/Dashboard';
 import AreasListado from './pages/areas/AreasListado';
 import DocumentosListado from './pages/documentos/DocumentosListado';
 import DocumentoDetalle from './pages/documentos/DocumentoDetalle';
+import CarpetasGestion from './pages/documentos/CarpetasGestion';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 import AdministracionInicio from './pages/administracion/AdministracionInicio';
 import UsuariosListado from './pages/administracion/UsuariosListado';
@@ -64,6 +65,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="documentos" accion="ver">
                       <DocumentoDetalle />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/documentos/carpetas"
+                  element={
+                    <PermissionRoute modulo="documentos" accion="crear">
+                      <CarpetasGestion />
                     </PermissionRoute>
                   }
                 />

@@ -17,7 +17,6 @@ import StatusChip from '../../components/common/StatusChip/StatusChip';
 import Pagination from '../../components/common/Pagination/Pagination';
 import Input from '../../components/common/Input/Input';
 import Modal from '../../components/common/Modal/Modal';
-import CarpetasModal from './CarpetasModal';
 import { validarArchivo, TIPOS_PERMITIDOS } from '../../utils/validarArchivo';
 
 const ESTADOS = ['vigente', 'por_vencer', 'vencido', 'sin_vigencia'];
@@ -67,7 +66,6 @@ export default function DocumentosListado() {
   const [documentos, setDocumentos] = useState([]);
   const [paginacion, setPaginacion] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [cargando, setCargando] = useState(true);
-  const [carpetasModalAbierto, setCarpetasModalAbierto] = useState(false);
   const [crearModalAbierto, setCrearModalAbierto] = useState(false);
   const [filtros, setFiltros] = useState({ areaId: '', carpetaId: '', tipoDocumentoId: '', estado: '', page: 1 });
 
@@ -165,11 +163,6 @@ export default function DocumentosListado() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros.areaId]);
 
-  function onCarpetaCreada(areaIdAfectada) {
-    if (filtros.areaId && Number(filtros.areaId) === areaIdAfectada) cargarCarpetasFiltro(filtros.areaId);
-    if (areaSeleccionadaCrear && Number(areaSeleccionadaCrear) === areaIdAfectada) cargarCarpetasCrear(areaSeleccionadaCrear);
-  }
-
   async function cargarDocumentos() {
     setCargando(true);
     try {
@@ -234,7 +227,7 @@ export default function DocumentosListado() {
           {!esVistaMovil && <ViewToggle modo={modo} onChange={setModo} />}
           {tienePermiso('documentos', 'crear') && (
             <>
-              <Button variant="outline" onClick={() => setCarpetasModalAbierto(true)}>
+              <Button variant="outline" onClick={() => navigate('/documentos/carpetas')}>
                 Gestionar carpetas
               </Button>
               <Button onClick={() => setCrearModalAbierto(true)}>Crear documento</Button>
@@ -431,13 +424,6 @@ export default function DocumentosListado() {
           </div>
         </form>
       </Modal>
-
-      <CarpetasModal
-        isOpen={carpetasModalAbierto}
-        onClose={() => setCarpetasModalAbierto(false)}
-        areas={areas}
-        onCarpetaCreada={onCarpetaCreada}
-      />
     </div>
   );
 }
