@@ -1,8 +1,9 @@
+// frontend/src/pages/documentos/DocumentosListado.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
-import { useForm } from 'react-hook-form';
-import { FileText } from 'lucide-react';
+import { useForm, Controller } from 'react-hook-form';
+import { FileText, FolderCog, Plus } from 'lucide-react';
 import documentoService from '../../api/documento.service';
 import carpetaService from '../../api/carpeta.service';
 import tipoDocumentoService from '../../api/tipoDocumento.service';
@@ -17,9 +18,17 @@ import StatusChip from '../../components/common/StatusChip/StatusChip';
 import Pagination from '../../components/common/Pagination/Pagination';
 import Input from '../../components/common/Input/Input';
 import Modal from '../../components/common/Modal/Modal';
+import FilterDropdown from '../../components/common/FilterDropdown/FilterDropdown';
+import AccionesDropdown from '../../components/common/AccionesDropdown/AccionesDropdown';
+import DatePicker from '../../components/common/DatePicker/DatePicker';
 import { validarArchivo, TIPOS_PERMITIDOS } from '../../utils/validarArchivo';
 
-const ESTADOS = ['vigente', 'por_vencer', 'vencido', 'sin_vigencia'];
+const ESTADOS = [
+  { value: 'vigente', label: 'vigente' },
+  { value: 'por_vencer', label: 'por vencer' },
+  { value: 'vencido', label: 'vencido' },
+  { value: 'sin_vigencia', label: 'sin vigencia' },
+];
 const TIPOS_PERMITIDOS_ACCEPT = Array.from(TIPOS_PERMITIDOS).join(',');
 
 export function aplanarCarpetas(arbol, prefijo = '') {
@@ -75,6 +84,7 @@ export default function DocumentosListado() {
     handleSubmit: handleSubmitCrear,
     reset: resetCrear,
     watch: watchCrear,
+    control: controlCrear,
     formState: { errors: erroresCrear },
   } = useForm();
 
@@ -219,100 +229,56 @@ export default function DocumentosListado() {
     { key: 'estado', label: 'Estado', render: (valor) => <StatusChip status={valor} /> },
   ];
 
+  const puedeCrear = tienePermiso('documentos', 'crear');
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h2 className="text-xl font-display font-semibold text-slate-800 dark:text-slate-100">Documentos</h2>
         <div className="flex items-center gap-3">
           {!esVistaMovil && <ViewToggle modo={modo} onChange={setModo} />}
-          {tienePermiso('documentos', 'crear') && (
-            <>
-              <Button variant="outline" onClick={() => navigate('/documentos/carpetas')}>
-                Gestionar carpetas
-              </Button>
-              <Button onClick={() => setCrearModalAbierto(true)}>Crear documento</Button>
-            </>
-          )}
+          <AccionesDropdown
+            acciones={[
+              { label: 'Gestionar carpetas', icon: FolderCog, onClick: () => navigate('/documentos/carpetas'), hidden: !puedeCrear },
+              { label: 'Crear documento', icon: Plus, onClick: () => setCrearModalAbierto(true), variant: 'primary', hidden: !puedeCrear },
+            ]}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div>
-          <label htmlFor="filtro-area" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-            Área
-          </label>
-          <select
-            id="filtro-area"
-            value={filtros.areaId}
-            onChange={(e) => actualizarFiltro('areaId', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-          >
-            <option value="">Todas</option>
-            {areas.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterDropdown
+          label="Área"
+          options={areas.map((area) => ({ value: area.id, label: area.nombre }))}
+          value={filtros.areaId}
+          onChange={(valor) => actualizarFiltro('areaId', valor)}
+          placeholder="Todas"
+        />
 
-        <div>
-          <label htmlFor="filtro-carpeta" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-            Carpeta
-          </label>
-          <select
-            id="filtro-carpeta"
-            value={filtros.carpetaId}
-            disabled={!filtros.areaId}
-            onChange={(e) => actualizarFiltro('carpetaId', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100 disabled:bg-slate-50 dark:disabled:bg-centhrix-card"
-          >
-            <option value="">Todas</option>
-            {carpetas.map((carpeta) => (
-              <option key={carpeta.id} value={carpeta.id}>
-                {carpeta.ruta}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterDropdown
+          label="Carpeta"
+          options={carpetas.map((carpeta) => ({ value: carpeta.id, label: carpeta.ruta }))}
+          value={filtros.carpetaId}
+          onChange={(valor) => actualizarFiltro('carpetaId', valor)}
+          placeholder="Todas"
+          disabled={!filtros.areaId}
+        />
 
-        <div>
-          <label htmlFor="filtro-tipo" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-            Tipo
-          </label>
-          <select
-            id="filtro-tipo"
-            value={filtros.tipoDocumentoId}
-            onChange={(e) => actualizarFiltro('tipoDocumentoId', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-          >
-            <option value="">Todos</option>
-            {tipos.map((tipo) => (
-              <option key={tipo.id} value={tipo.id}>
-                {tipo.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterDropdown
+          label="Tipo"
+          options={tipos.map((tipo) => ({ value: tipo.id, label: tipo.nombre }))}
+          value={filtros.tipoDocumentoId}
+          onChange={(valor) => actualizarFiltro('tipoDocumentoId', valor)}
+          placeholder="Todos"
+        />
 
-        <div>
-          <label htmlFor="filtro-estado" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-            Estado
-          </label>
-          <select
-            id="filtro-estado"
-            value={filtros.estado}
-            onChange={(e) => actualizarFiltro('estado', e.target.value)}
-            className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-          >
-            <option value="">Todos</option>
-            {ESTADOS.map((estado) => (
-              <option key={estado} value={estado}>
-                {estado}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterDropdown
+          label="Estado"
+          options={ESTADOS}
+          value={filtros.estado}
+          onChange={(valor) => actualizarFiltro('estado', valor)}
+          placeholder="Todos"
+        />
       </div>
 
       {!cargando && documentos.length === 0 && (
@@ -399,8 +365,16 @@ export default function DocumentosListado() {
           <Input label="Código" {...registerCrear('codigo')} />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Vigencia desde" type="date" {...registerCrear('vigenciaDesde')} />
-            <Input label="Vigencia hasta" type="date" {...registerCrear('vigenciaHasta')} />
+            <Controller
+              name="vigenciaDesde"
+              control={controlCrear}
+              render={({ field }) => <DatePicker label="Vigencia desde" value={field.value || ''} onChange={field.onChange} />}
+            />
+            <Controller
+              name="vigenciaHasta"
+              control={controlCrear}
+              render={({ field }) => <DatePicker label="Vigencia hasta" value={field.value || ''} onChange={field.onChange} />}
+            />
           </div>
 
           <Input label="Días de alerta de vencimiento" type="number" {...registerCrear('diasAlertaVencimiento')} />
