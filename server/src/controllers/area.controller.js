@@ -1,5 +1,7 @@
-const { Area, Auditoria } = require('../models');
-const { success, created, notFound } = require('../utils/responses');
+// server/src/controllers/area.controller.js
+const { Area, Usuario, Rol, Auditoria, sequelize } = require('../models');
+const { success, created, notFound, badRequest } = require('../utils/responses');
+const { hashearPassword } = require('../services/usuario.service');
 
 async function listar(req, res) {
   const areas = await Area.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] });
@@ -7,12 +9,54 @@ async function listar(req, res) {
 }
 
 async function crear(req, res) {
-  const { nombre, codigo, liderUsuarioId } = req.body;
-  const area = await Area.create({ nombre, codigo, liderUsuarioId });
+  const { nombre, codigo, liderUsuarioId, nuevoUsuario } = req.body;
+
+  if (liderUsuarioId && nuevoUsuario) {
+    return badRequest(res, 'Envía liderUsuarioId o nuevoUsuario, no ambos');
+  }
+
+  if (nuevoUsuario) {
+    const { username, email, nombre: nombreUsuario, apellido, password, rolId } = nuevoUsuario;
+    if (!username || !email || !nombreUsuario || !apellido || !password || !rolId) {
+      return badRequest(res, 'nuevoUsuario requiere username, email, nombre, apellido, password y rolId');
+    }
+    const rol = await Rol.findByPk(rolId);
+    if (!rol || !rol.activo) return notFound(res, 'Rol no encontrado');
+  }
+
+  if (liderUsuarioId) {
+    const lider = await Usuario.findByPk(liderUsuarioId);
+    if (!lider || !lider.activo) return notFound(res, 'Usuario líder no encontrado');
+  }
+
+  const area = await sequelize.transaction(async (t) => {
+    let liderId = liderUsuarioId || null;
+
+    if (nuevoUsuario) {
+      const passwordHash = await hashearPassword(nuevoUsuario.password);
+      const usuarioCreado = await Usuario.create(
+        {
+          username: nuevoUsuario.username,
+          email: nuevoUsuario.email,
+          nombre: nuevoUsuario.nombre,
+          apellido: nuevoUsuario.apellido,
+          rolId: nuevoUsuario.rolId,
+          passwordHash,
+          requiereCambioPassword: nuevoUsuario.requiereCambioPassword !== undefined ? nuevoUsuario.requiereCambioPassword : true,
+        },
+        { transaction: t }
+      );
+      liderId = usuarioCreado.id;
+    }
+
+    return Area.create({ nombre, codigo, liderUsuarioId: liderId }, { transaction: t });
+  });
+
   await Auditoria.registrar({
     tabla: 'areas', registroId: area.id, accion: 'crear',
     usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto, datosNuevos: area.toJSON(),
   });
+
   return created(res, 'Área creada', area);
 }
 

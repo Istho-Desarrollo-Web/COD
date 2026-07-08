@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
 const seedRolesPermisos = require('../../src/scripts/seedRolesPermisos');
-const { RolPermiso, Usuario, Rol } = require('../../src/models');
+const { RolPermiso, Usuario, Rol, Area } = require('../../src/models');
 const { invalidarCachePermisos } = require('../../src/middlewares/roles');
 const { app } = require('../../server');
 
@@ -99,5 +99,105 @@ describe('Areas API', () => {
 
     spy.mockRestore();
     invalidarCachePermisos();
+  });
+
+  it('creates an area together with a new lider usuario in one transaction', async () => {
+    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const sufijo = Date.now();
+    const nuevoUsuario = {
+      username: `lider_${sufijo}`,
+      email: `lider_${sufijo}@istho.com.co`,
+      nombre: 'Carlos',
+      apellido: 'Ruiz',
+      password: 'ClaveLider123!',
+      rolId: liderRol.id,
+    };
+
+    const res = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nombre: 'RRHH', codigo: `RRHH${sufijo}`, nuevoUsuario });
+    expect(res.status).toBe(201);
+
+    const usuarioCreado = await Usuario.findOne({ where: { username: nuevoUsuario.username } });
+    expect(usuarioCreado).not.toBeNull();
+    expect(res.body.data.liderUsuarioId).toBe(usuarioCreado.id);
+  });
+
+  it('rolls back both the area and the usuario when nuevoUsuario has a duplicate username', async () => {
+    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const sufijo = Date.now();
+    const usernameDuplicado = `duplicado_${sufijo}`;
+    await Usuario.create({
+      username: usernameDuplicado,
+      email: `existente_${sufijo}@istho.com.co`,
+      passwordHash: await bcrypt.hash('ClaveExistente123!', 10),
+      nombre: 'Ya',
+      apellido: 'Existe',
+      rolId: liderRol.id,
+    });
+
+    const codigoIntento = `ROLLBACK${sufijo}`;
+    const res = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        nombre: 'No debería crearse',
+        codigo: codigoIntento,
+        nuevoUsuario: {
+          username: usernameDuplicado,
+          email: `nuevo_${sufijo}@istho.com.co`,
+          nombre: 'Otro',
+          apellido: 'Usuario',
+          password: 'ClaveNueva123!',
+          rolId: liderRol.id,
+        },
+      });
+    expect(res.status).toBe(409);
+
+    const areaCreada = await Area.findOne({ where: { codigo: codigoIntento } });
+    expect(areaCreada).toBeNull();
+  });
+
+  it('creates an area with an existing usuario as líder (no nuevoUsuario)', async () => {
+    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const sufijo = Date.now();
+    const usuarioExistente = await Usuario.create({
+      username: `existente_lider_${sufijo}`,
+      email: `existente_lider_${sufijo}@istho.com.co`,
+      passwordHash: await bcrypt.hash('ClaveExistente123!', 10),
+      nombre: 'Lider',
+      apellido: 'Existente',
+      rolId: liderRol.id,
+    });
+
+    const res = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nombre: 'Financiera 2', codigo: `FIN2_${sufijo}`, liderUsuarioId: usuarioExistente.id });
+    expect(res.status).toBe(201);
+    expect(res.body.data.liderUsuarioId).toBe(usuarioExistente.id);
+  });
+
+  it('returns 400 when both liderUsuarioId and nuevoUsuario are sent', async () => {
+    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const sufijo = Date.now();
+    const res = await request(app)
+      .post('/api/v1/areas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        nombre: 'Área inválida',
+        codigo: `AMBOS${sufijo}`,
+        liderUsuarioId: 1,
+        nuevoUsuario: {
+          username: `ambos_${sufijo}`,
+          email: `ambos_${sufijo}@istho.com.co`,
+          nombre: 'X',
+          apellido: 'Y',
+          password: 'Clave123!',
+          rolId: liderRol.id,
+        },
+      });
+    expect(res.status).toBe(400);
   });
 });
