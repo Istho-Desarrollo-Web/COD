@@ -19,10 +19,10 @@ async function obtener(req, res) {
 }
 
 async function crear(req, res) {
-  const { tipo, documentoIdentificacion, razonSocial, criticidad, categoria, responsableUsuarioId } = req.body;
+  const { tipo, documentoIdentificacion, razonSocial, criticidad, categoria, responsableUsuarioId, areaSolicitanteId } = req.body;
 
-  if (!tipo || !documentoIdentificacion || !razonSocial) {
-    return badRequest(res, 'tipo, documentoIdentificacion y razonSocial son obligatorios');
+  if (!tipo || !documentoIdentificacion || !razonSocial || !areaSolicitanteId) {
+    return badRequest(res, 'tipo, documentoIdentificacion, razonSocial y areaSolicitanteId son obligatorios');
   }
 
   // La unicidad de documentoIdentificacion la aplica la restricción UNIQUE de
@@ -30,7 +30,7 @@ async function crear(req, res) {
   // middleware de errores global (server.js) ya traduce a 409 — mismo
   // mecanismo que usa Area.codigo, sin necesidad de un pre-chequeo manual aquí.
   const proveedor = await Proveedor.create({
-    tipo, documentoIdentificacion, razonSocial,
+    tipo, documentoIdentificacion, razonSocial, areaSolicitanteId,
     criticidad: criticidad || 'media',
     categoria: categoria || null,
     responsableUsuarioId: responsableUsuarioId || null,
@@ -48,7 +48,7 @@ async function editar(req, res) {
   const proveedor = await Proveedor.findByPk(req.params.id);
   if (!proveedor) return notFound(res, 'Proveedor no encontrado');
 
-  const { razonSocial, criticidad, categoria, responsableUsuarioId, estado } = req.body;
+  const { razonSocial, criticidad, categoria, responsableUsuarioId, estado, areaSolicitanteId } = req.body;
 
   const datosAnteriores = proveedor.toJSON();
   const cambios = {};
@@ -57,6 +57,7 @@ async function editar(req, res) {
   if (categoria !== undefined) cambios.categoria = categoria;
   if (responsableUsuarioId !== undefined) cambios.responsableUsuarioId = responsableUsuarioId;
   if (estado !== undefined) cambios.estado = estado;
+  if (areaSolicitanteId !== undefined) cambios.areaSolicitanteId = areaSolicitanteId;
 
   await proveedor.update(cambios);
 

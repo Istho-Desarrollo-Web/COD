@@ -4,20 +4,25 @@ const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
 const seedRolesPermisos = require('../../src/scripts/seedRolesPermisos');
 const seedRequisitosProveedor = require('../../src/scripts/seedRequisitosProveedor');
-const { Rol, Usuario } = require('../../src/models');
+const seedTiposDocumento = require('../../src/scripts/seedTiposDocumento');
+const { Rol, Usuario, Area } = require('../../src/models');
 const { invalidarCachePermisos } = require('../../src/middlewares/roles');
 const { app } = require('../../server');
 
 let token;
 let financieraToken;
 let solicitanteToken;
+let area;
 
 beforeAll(async () => {
   await sequelize.authenticate();
   await createMigrator(sequelize).up();
+  await seedTiposDocumento();
   await seedRolesPermisos();
   await seedRequisitosProveedor();
   invalidarCachePermisos();
+
+  area = await Area.create({ nombre: 'Compras Proveedores', codigo: `COMPRASPROV${Date.now()}` });
 
   const res = await request(app)
     .post('/api/v1/auth/login')
@@ -65,7 +70,7 @@ describe('Proveedores API', () => {
     const createRes = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${token}`)
-      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Insumos ABC SAS', criticidad: 'media' });
+      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Insumos ABC SAS', criticidad: 'media', areaSolicitanteId: area.id });
     expect(createRes.status).toBe(201);
     expect(createRes.body.data.estado).toBe('en_evaluacion');
 
@@ -79,13 +84,13 @@ describe('Proveedores API', () => {
     const first = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${token}`)
-      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Duplicado SAS' });
+      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Duplicado SAS', areaSolicitanteId: area.id });
     expect(first.status).toBe(201);
 
     const second = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${token}`)
-      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Duplicado Otra Vez SAS' });
+      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Duplicado Otra Vez SAS', areaSolicitanteId: area.id });
     expect(second.status).toBe(409);
   });
 
@@ -101,7 +106,7 @@ describe('Proveedores API', () => {
     const res = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${financieraToken}`)
-      .send({ tipo: 'contratista', documentoIdentificacion: `903${Date.now()}`, razonSocial: 'Contratista Financiera SAS' });
+      .send({ tipo: 'contratista', documentoIdentificacion: `903${Date.now()}`, razonSocial: 'Contratista Financiera SAS', areaSolicitanteId: area.id });
     expect(res.status).toBe(201);
   });
 
@@ -109,7 +114,7 @@ describe('Proveedores API', () => {
     const res = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${solicitanteToken}`)
-      .send({ tipo: 'proveedor', documentoIdentificacion: `904${Date.now()}`, razonSocial: 'No autorizado SAS' });
+      .send({ tipo: 'proveedor', documentoIdentificacion: `904${Date.now()}`, razonSocial: 'No autorizado SAS', areaSolicitanteId: area.id });
     expect(res.status).toBe(403);
   });
 
@@ -117,7 +122,7 @@ describe('Proveedores API', () => {
     const createRes = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${token}`)
-      .send({ tipo: 'proveedor', documentoIdentificacion: `905${Date.now()}`, razonSocial: 'Editable SAS' });
+      .send({ tipo: 'proveedor', documentoIdentificacion: `905${Date.now()}`, razonSocial: 'Editable SAS', areaSolicitanteId: area.id });
     const id = createRes.body.data.id;
 
     const editRes = await request(app)
@@ -132,6 +137,26 @@ describe('Proveedores API', () => {
 
     const obtenerRes = await request(app).get(`/api/v1/proveedores/${id}`).set('Authorization', `Bearer ${token}`);
     expect(obtenerRes.body.data.estado).toBe('inactivo');
+  });
+
+  it('returns 400 when areaSolicitanteId is missing', async () => {
+    const res = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `906${Date.now()}`, razonSocial: 'Sin Área SAS' });
+    expect(res.status).toBe(400);
+  });
+
+  it('allows setting areaSolicitanteId later via edit, for a proveedor created without one', async () => {
+    const proveedorSinArea = await require('../../src/models').Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `907${Date.now()}`, razonSocial: 'Legado SAS',
+    });
+    const editRes = await request(app)
+      .put(`/api/v1/proveedores/${proveedorSinArea.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ areaSolicitanteId: area.id });
+    expect(editRes.status).toBe(200);
+    expect(editRes.body.data.areaSolicitanteId).toBe(area.id);
   });
 });
 
