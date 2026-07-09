@@ -17,4 +17,14 @@ describe('StatusChip', () => {
     render(<StatusChip status="estado_no_definido" />);
     expect(screen.getByText('estado_no_definido')).toBeInTheDocument();
   });
+
+  it('renders "en evaluación" for the en_evaluacion proveedor status', () => {
+    render(<StatusChip status="en_evaluacion" />);
+    expect(screen.getByText('en evaluación')).toBeInTheDocument();
+  });
+
+  it('renders "suspendido" for the suspendido proveedor status', () => {
+    render(<StatusChip status="suspendido" />);
+    expect(screen.getByText('suspendido')).toBeInTheDocument();
+  });
 });

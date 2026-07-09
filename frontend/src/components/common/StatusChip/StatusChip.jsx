@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 const STATUS_CONFIG = {
   activo: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'activo' },
   inactivo: { bg: 'bg-gray-100 dark:bg-centhrix-surface', text: 'text-gray-700 dark:text-slate-300', label: 'inactivo' },
+  en_evaluacion: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'en evaluación' },
+  suspendido: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'suspendido' },
 
   saludable: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'saludable' },
   atencion: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'atención' },
