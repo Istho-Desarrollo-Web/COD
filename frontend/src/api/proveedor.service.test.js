@@ -43,4 +43,20 @@ describe('proveedor.service', () => {
     const resultado = await proveedorService.eliminar(1);
     expect(resultado).toBeNull();
   });
+
+  it('aprobar posts to the aprobar endpoint and returns the result', async () => {
+    mock.onPost('/proveedores/3/aprobar').reply(200, {
+      success: true,
+      data: { proveedor: { id: 3, estado: 'activo' }, carpeta: { id: 10, nombre: 'Insumos ABC' }, documentosReflejados: 2 },
+    });
+    const resultado = await proveedorService.aprobar(3);
+    expect(resultado).toEqual({ proveedor: { id: 3, estado: 'activo' }, carpeta: { id: 10, nombre: 'Insumos ABC' }, documentosReflejados: 2 });
+  });
+
+  it('rechazar posts the motivo and returns the updated proveedor', async () => {
+    mock.onPost('/proveedores/3/rechazar').reply(200, { success: true, data: { id: 3, estado: 'inactivo' } });
+    const proveedor = await proveedorService.rechazar(3, 'Documentación incompleta');
+    expect(proveedor).toEqual({ id: 3, estado: 'inactivo' });
+    expect(JSON.parse(mock.history.post.find((r) => r.url === '/proveedores/3/rechazar').data)).toEqual({ motivo: 'Documentación incompleta' });
+  });
 });

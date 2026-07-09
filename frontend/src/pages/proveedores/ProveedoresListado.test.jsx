@@ -5,9 +5,11 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ProveedoresListado from './ProveedoresListado';
 import proveedorService from '../../api/proveedor.service';
 import { useAuth } from '../../context/AuthContext';
+import areaService from '../../api/area.service';
 
 vi.mock('../../api/proveedor.service');
 vi.mock('../../context/AuthContext');
+vi.mock('../../api/area.service');
 
 function renderPagina() {
   return render(
@@ -25,6 +27,7 @@ function renderPagina() {
 describe('ProveedoresListado', () => {
   beforeEach(() => {
     useAuth.mockReturnValue({ tienePermiso: () => true });
+    areaService.listar.mockResolvedValue([{ id: 7, nombre: 'Financiera' }]);
   });
 
   it('renders the list of proveedores', async () => {
@@ -48,13 +51,14 @@ describe('ProveedoresListado', () => {
 
     await screen.findByText('Sin proveedores todavía');
     await userEvent.click(screen.getByText('Crear proveedor'));
+    await userEvent.selectOptions(screen.getByLabelText('Área solicitante'), '7');
     await userEvent.type(screen.getByLabelText('Documento de identificación'), '900999888');
     await userEvent.type(screen.getByLabelText('Razón social'), 'Nuevo SAS');
     await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
 
     await waitFor(() =>
       expect(proveedorService.crear).toHaveBeenCalledWith(
-        expect.objectContaining({ documentoIdentificacion: '900999888', razonSocial: 'Nuevo SAS' })
+        expect.objectContaining({ areaSolicitanteId: 7, documentoIdentificacion: '900999888', razonSocial: 'Nuevo SAS' })
       )
     );
   });

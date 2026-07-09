@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { Plus, Truck, AlertCircle } from 'lucide-react';
 import proveedorService from '../../api/proveedor.service';
+import areaService from '../../api/area.service';
 import { useAuth } from '../../context/AuthContext';
 import { useViewMode } from '../../hooks/useViewMode';
 import Button from '../../components/common/Button/Button';
@@ -68,6 +69,7 @@ export default function ProveedoresListado() {
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroCriticidad, setFiltroCriticidad] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [areas, setAreas] = useState([]);
   const {
     register,
     handleSubmit,
@@ -97,6 +99,18 @@ export default function ProveedoresListado() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroEstado, filtroTipo, filtroCriticidad]);
 
+  useEffect(() => {
+    async function cargarAreas() {
+      try {
+        const data = await areaService.listar();
+        setAreas(data);
+      } catch {
+        setAreas([]);
+      }
+    }
+    cargarAreas();
+  }, []);
+
   function cerrarModal() {
     setModalAbierto(false);
     reset();
@@ -110,6 +124,7 @@ export default function ProveedoresListado() {
         razonSocial: valores.razonSocial,
         criticidad: valores.criticidad,
         categoria: valores.categoria || null,
+        areaSolicitanteId: Number(valores.areaSolicitanteId),
       });
       enqueueSnackbar('Proveedor creado exitosamente', { variant: 'success' });
       cerrarModal();
@@ -216,6 +231,30 @@ export default function ProveedoresListado() {
               <option value="media">Media</option>
               <option value="baja">Baja</option>
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="crear-area-solicitante" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+              Área solicitante
+            </label>
+            <select
+              id="crear-area-solicitante"
+              className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
+              {...register('areaSolicitanteId', { required: 'El área solicitante es obligatoria' })}
+            >
+              <option value="">Selecciona un área</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.nombre}
+                </option>
+              ))}
+            </select>
+            {errors.areaSolicitanteId?.message && (
+              <p role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" aria-hidden="true" />
+                {errors.areaSolicitanteId.message}
+              </p>
+            )}
           </div>
 
           <Input label="Categoría" {...register('categoria')} />
