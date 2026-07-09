@@ -15,6 +15,7 @@ Proveedores/Contratistas y Repositorio documental SGI.
 - Diseño de creación de usuario al crear un Área (módulo de Usuarios CRUD, endpoint de Roles de solo lectura, asignación de líder): `docs/superpowers/specs/2026-07-08-cod-usuario-al-crear-area-design.md`
 - Diseño de componentes portados del CRM Centhrix (DatePicker, FilterDropdown, AccionesDropdown) y de la pantalla de Gestión de carpetas: `docs/superpowers/specs/2026-07-08-cod-portar-componentes-crm-design.md`
 - Diseño de la vista de carpetas estilo Google Drive (navegación por tarjetas, migas de pan, y detalle de carpeta): `docs/superpowers/specs/2026-07-08-cod-carpetas-vista-drive-design.md`
+- Diseño del Detalle de Área (info del área, líder resuelto, conteo de carpetas/documentos, navegación cruzada): `docs/superpowers/specs/2026-07-09-cod-detalle-area-design.md`
 - Integración futura con el CRM: `docs/architecture/crm-integration.md`
 
 ## Backend (`server/`)
@@ -64,6 +65,8 @@ El módulo Documentos (`/documentos`) ya está implementado: listado con filtros
 El módulo de Usuarios (`Administración > Usuarios`) ya está implementado: listado, creación, edición (incluye reseteo de contraseña) y baja lógica. El modal "Crear área" permite asignar un líder creando un usuario nuevo inline o eligiendo uno existente.
 
 La gestión de carpetas (`/documentos/carpetas`) es una vista de tarjetas navegable estilo Google Drive: se entra a una carpeta haciendo clic en su tarjeta, una miga de pan permite volver a cualquier nivel superior, un botón de información abre el detalle de una carpeta (ruta, fecha de creación, cantidad de subcarpetas, y acceso directo a sus documentos), y "Nueva carpeta" crea una carpeta con la carpeta padre implícita según el nivel donde se esté parado.
+
+El detalle de un área (`/areas/:id`, accesible desde `AreasListado`) muestra su información (nombre, código, salud documental, líder resuelto), y dos accesos directos con conteo: "Ver carpetas" (`/documentos/carpetas?areaId=`) y "Ver documentos" (`/documentos?areaId=`, con desglose por estado). Es de solo lectura — no permite editar ni dar de baja el área.
 
 ### Convenciones de nombres (estado y variables)
 
