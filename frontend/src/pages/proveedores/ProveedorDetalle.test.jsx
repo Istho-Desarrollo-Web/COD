@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -79,9 +79,10 @@ describe('ProveedorDetalle', () => {
     await screen.findByText('Insumos ABC');
     await userEvent.click(screen.getByRole('tab', { name: 'Expediente documental' }));
 
-    expect(await screen.findByText('RUT')).toBeInTheDocument();
-    expect(screen.getByText('Certificado SST')).toBeInTheDocument();
-    expect(screen.queryByText('Certificado SARLAFT')).not.toBeInTheDocument();
+    const checklist = (await screen.findByText('Checklist de requisitos')).closest('div');
+    expect(within(checklist).getByText('RUT')).toBeInTheDocument();
+    expect(within(checklist).getByText('Certificado SST')).toBeInTheDocument();
+    expect(within(checklist).queryByText('Certificado SARLAFT')).not.toBeInTheDocument();
   });
 
   it('shows "Falta" for a requisito with no covering document', async () => {
@@ -89,7 +90,7 @@ describe('ProveedorDetalle', () => {
     await screen.findByText('Insumos ABC');
     await userEvent.click(screen.getByRole('tab', { name: 'Expediente documental' }));
 
-    await screen.findByText('RUT');
+    await screen.findByText('Checklist de requisitos');
     expect(screen.getAllByText('Falta').length).toBeGreaterThan(0);
   });
 
@@ -99,7 +100,7 @@ describe('ProveedorDetalle', () => {
     await screen.findByText('Insumos ABC');
     await userEvent.click(screen.getByRole('tab', { name: 'Expediente documental' }));
 
-    await screen.findByText('RUT');
+    await screen.findByText('Checklist de requisitos');
     expect(screen.getAllByText('vigente').length).toBeGreaterThan(0);
   });
 
@@ -145,7 +146,7 @@ describe('ProveedorDetalle', () => {
     await screen.findByText('Insumos ABC');
     await userEvent.click(screen.getByRole('tab', { name: 'Expediente documental' }));
 
-    await screen.findByText('RUT');
+    await screen.findByText('Documentos subidos');
     expect(screen.queryByRole('button', { name: 'Subir documento' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
   });
