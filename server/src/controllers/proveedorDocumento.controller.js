@@ -1,7 +1,7 @@
 const { Proveedor, ProveedorDocumento, RequisitoProveedor, Auditoria } = require('../models');
 const { success, created, notFound, badRequest } = require('../utils/responses');
 const { calcularEstadoProveedorDocumento } = require('../services/proveedorDocumento.service');
-const { guardarArchivo, obtenerRutaAbsoluta } = require('../services/almacenamiento.service');
+const { guardarArchivo, obtenerRutaAbsoluta, eliminarArchivo } = require('../services/almacenamiento.service');
 
 async function listar(req, res) {
   const proveedor = await Proveedor.findByPk(req.params.id);
@@ -70,6 +70,9 @@ async function eliminar(req, res) {
   // ProveedorDocumento no tiene columna `activo` (a diferencia de Documento) —
   // no hay baja lógica posible aquí, se hace un delete real. Auditoria conserva
   // datosAnteriores como snapshot, así que el rastro de auditoría no se pierde.
+  if (documento.s3Key) {
+    eliminarArchivo(documento.s3Key);
+  }
   await documento.destroy();
   await Auditoria.registrar({
     tabla: 'proveedor_documentos', registroId: documento.id, accion: 'eliminar',
