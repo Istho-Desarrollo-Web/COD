@@ -16,6 +16,7 @@ Proveedores/Contratistas y Repositorio documental SGI.
 - Diseño de componentes portados del CRM Centhrix (DatePicker, FilterDropdown, AccionesDropdown) y de la pantalla de Gestión de carpetas: `docs/superpowers/specs/2026-07-08-cod-portar-componentes-crm-design.md`
 - Diseño de la vista de carpetas estilo Google Drive (navegación por tarjetas, migas de pan, y detalle de carpeta): `docs/superpowers/specs/2026-07-08-cod-carpetas-vista-drive-design.md`
 - Diseño del Detalle de Área (info del área, líder resuelto, conteo de carpetas/documentos, navegación cruzada): `docs/superpowers/specs/2026-07-09-cod-detalle-area-design.md`
+- Diseño del módulo de Proveedores y Contratistas (CRUD, expediente documental con checklist de requisitos, subida/descarga de documentos): `docs/superpowers/specs/2026-07-09-cod-proveedores-design.md`
 - Integración futura con el CRM: `docs/architecture/crm-integration.md`
 
 ## Backend (`server/`)
@@ -67,6 +68,8 @@ El módulo de Usuarios (`Administración > Usuarios`) ya está implementado: lis
 La gestión de carpetas (`/documentos/carpetas`) es una vista de tarjetas navegable estilo Google Drive: se entra a una carpeta haciendo clic en su tarjeta, una miga de pan permite volver a cualquier nivel superior, un botón de información abre el detalle de una carpeta (ruta, fecha de creación, cantidad de subcarpetas, y acceso directo a sus documentos), y "Nueva carpeta" crea una carpeta con la carpeta padre implícita según el nivel donde se esté parado.
 
 El detalle de un área (`/areas/:id`, accesible desde `AreasListado`) muestra su información (nombre, código, salud documental, líder resuelto), y dos accesos directos con conteo: "Ver carpetas" (`/documentos/carpetas?areaId=`) y "Ver documentos" (`/documentos?areaId=`, con desglose por estado). Es de solo lectura — no permite editar ni dar de baja el área.
+
+El módulo de Proveedores y Contratistas (`/proveedores`) ya está implementado: listado con filtros (estado, tipo, criticidad), creación, y detalle (`/proveedores/:id`) con edición inline, baja lógica, y expediente documental — un checklist de los requisitos aplicables según la criticidad del proveedor (Cámara de Comercio, RUT, Certificado SST, Certificado SARLAFT, Póliza de responsabilidad civil), y subida/descarga/eliminación de los documentos que los cubren, con cálculo automático de vigencia (vigente/por vencer/vencido, umbral fijo de 30 días).
 
 **Limitación conocida:** el nombre del líder solo se resuelve para usuarios con permiso `usuarios:ver` (hoy, solo `admin`) — `GET /usuarios/:id` está gateado por ese permiso, y los roles que acceden a `/areas/:id` (`financiera`, `lider_area`, `solicitante`, todos con `areas:ver`) no lo tienen. Para el resto de roles, la sección de líder muestra "Sin líder asignado" aunque sí haya uno asignado. Fast-follow pendiente: resolver el nombre del líder directamente en `GET /areas/:id` (backend) en vez de depender de `usuarioService.obtener`.
 
