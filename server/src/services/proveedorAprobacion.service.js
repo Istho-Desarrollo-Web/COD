@@ -2,13 +2,13 @@ const fs = require('fs');
 const path = require('path');
 const { calcularEstadoDocumento } = require('./documento.service');
 const { guardarArchivo, obtenerRutaAbsoluta } = require('./almacenamiento.service');
+const { recalcularSaludArea } = require('./area.service');
 
 async function aprobarProveedor(proveedor) {
   const { sequelize, Carpeta, Documento, ProveedorDocumento, RequisitoProveedor, TipoDocumento } = require('../models');
+  const areaId = proveedor.areaSolicitanteId;
 
-  return sequelize.transaction(async (t) => {
-    const areaId = proveedor.areaSolicitanteId;
-
+  const resultado = await sequelize.transaction(async (t) => {
     const [carpetaRaiz] = await Carpeta.findOrCreate({
       where: { areaId, proveedorId: null, carpetaPadreId: null, nombre: 'Proveedores' },
       transaction: t,
@@ -30,9 +30,9 @@ async function aprobarProveedor(proveedor) {
       let tipoDocumentoId = tipoGenerico.id;
       if (documentoExpediente.requisitoId) {
         const requisito = await RequisitoProveedor.findByPk(documentoExpediente.requisitoId, { transaction: t });
-        if (requisito) {
+        if (requisito?.tipoDocumentoId) {
           nombreDocumento = requisito.nombre;
-          if (requisito.tipoDocumentoId) tipoDocumentoId = requisito.tipoDocumentoId;
+          tipoDocumentoId = requisito.tipoDocumentoId;
         }
       }
 
@@ -66,6 +66,12 @@ async function aprobarProveedor(proveedor) {
 
     return { carpeta: subcarpeta, documentosReflejados };
   });
+
+  if (resultado.documentosReflejados > 0) {
+    await recalcularSaludArea(areaId);
+  }
+
+  return resultado;
 }
 
 module.exports = { aprobarProveedor };

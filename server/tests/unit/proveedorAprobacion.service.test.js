@@ -81,6 +81,42 @@ describe('proveedorAprobacion.service', () => {
     expect(tipoDocumento.nombre).toBe('Documento de proveedor');
   });
 
+  it('usa el nombre y tipo genéricos cuando el requisito asociado no tiene tipoDocumentoId', async () => {
+    const requisitoSinTipo = await RequisitoProveedor.create({
+      nombre: `Requisito Sin Tipo ${Date.now()}`,
+      criticidadMinima: 'baja',
+    });
+
+    try {
+      const proveedor = await Proveedor.create({
+        tipo: 'proveedor', documentoIdentificacion: `930${Date.now()}${Math.random()}`, razonSocial: `Aprobado ${Date.now()}`,
+        areaSolicitanteId: area.id,
+      });
+      const { ruta } = guardarArchivo(
+        { originalname: 'rut-original.pdf', buffer: Buffer.from('contenido de prueba') },
+        `proveedores/${proveedor.id}`
+      );
+      await ProveedorDocumento.create({
+        proveedorId: proveedor.id,
+        requisitoId: requisitoSinTipo.id,
+        s3Key: ruta,
+        vigenciaHasta: '2099-01-01',
+        estado: 'vigente',
+      });
+
+      const { carpeta } = await aprobarProveedor(proveedor);
+
+      const documentos = await Documento.findAll({ where: { carpetaId: carpeta.id } });
+      expect(documentos).toHaveLength(1);
+      expect(documentos[0].nombre).toBe('Documento de proveedor');
+      const tipoDocumento = await require('../../src/models').TipoDocumento.findByPk(documentos[0].tipoDocumentoId);
+      expect(tipoDocumento.nombre).toBe('Documento de proveedor');
+    } finally {
+      await ProveedorDocumento.destroy({ where: { requisitoId: requisitoSinTipo.id } });
+      await requisitoSinTipo.destroy();
+    }
+  });
+
   it('deja al proveedor en estado activo', async () => {
     const proveedor = await crearProveedorConDocumento();
     await aprobarProveedor(proveedor);
