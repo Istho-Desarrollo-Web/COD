@@ -150,4 +150,47 @@ describe('ProveedorDetalle', () => {
     expect(screen.queryByRole('button', { name: 'Subir documento' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
   });
+
+  it('shows Aprobar and Rechazar buttons only while en_evaluacion, and approves successfully', async () => {
+    proveedorService.obtener.mockResolvedValue({ ...PROVEEDOR, estado: 'en_evaluacion' });
+    proveedorService.aprobar.mockResolvedValue({ proveedor: { ...PROVEEDOR, estado: 'activo' }, carpeta: { id: 9, nombre: 'Insumos ABC' }, documentosReflejados: 2 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar' }));
+
+    await waitFor(() => expect(proveedorService.aprobar).toHaveBeenCalledWith('1'));
+  });
+
+  it('hides Aprobar and Rechazar when estado is not en_evaluacion', async () => {
+    proveedorService.obtener.mockResolvedValue({ ...PROVEEDOR, estado: 'activo' });
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+
+    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
+  });
+
+  it('rejects a proveedor with a motivo', async () => {
+    proveedorService.obtener.mockResolvedValue({ ...PROVEEDOR, estado: 'en_evaluacion' });
+    proveedorService.rechazar.mockResolvedValue({ ...PROVEEDOR, estado: 'inactivo' });
+    vi.spyOn(window, 'prompt').mockReturnValue('Documentación incompleta');
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Rechazar' }));
+
+    await waitFor(() => expect(proveedorService.rechazar).toHaveBeenCalledWith('1', 'Documentación incompleta'));
+  });
+
+  it('hides Aprobar and Rechazar when the user lacks the editar permission', async () => {
+    useAuth.mockReturnValue({ tienePermiso: () => false });
+    proveedorService.obtener.mockResolvedValue({ ...PROVEEDOR, estado: 'en_evaluacion' });
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+
+    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
+  });
 });

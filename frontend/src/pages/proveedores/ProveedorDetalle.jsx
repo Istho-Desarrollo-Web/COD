@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useSnackbar } from 'notistack';
-import { ArrowLeft, Download, Trash2, Upload, Truck } from 'lucide-react';
+import { ArrowLeft, Download, Trash2, Upload, Truck, CheckCircle, XCircle } from 'lucide-react';
 import proveedorService from '../../api/proveedor.service';
 import requisitoProveedorService from '../../api/requisitoProveedor.service';
 import proveedorDocumentoService from '../../api/proveedorDocumento.service';
@@ -119,6 +119,33 @@ export default function ProveedorDetalle() {
       navigate('/proveedores');
     } catch (error) {
       enqueueSnackbar(error?.message || 'No se pudo dar de baja el proveedor', { variant: 'error' });
+    }
+  }
+
+  async function onAprobar() {
+    if (!window.confirm('¿Aprobar este proveedor? Se creará su carpeta en el módulo de Documentos con los documentos ya subidos al expediente.')) return;
+    try {
+      const resultado = await proveedorService.aprobar(id);
+      enqueueSnackbar(`Proveedor aprobado. Se reflejaron ${resultado.documentosReflejados} documento(s) en su carpeta.`, { variant: 'success' });
+      await cargarProveedor();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo aprobar el proveedor', { variant: 'error' });
+    }
+  }
+
+  async function onRechazar() {
+    const motivo = window.prompt('Motivo del rechazo:');
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      enqueueSnackbar('El motivo del rechazo es obligatorio', { variant: 'error' });
+      return;
+    }
+    try {
+      await proveedorService.rechazar(id, motivo);
+      enqueueSnackbar('Proveedor rechazado', { variant: 'success' });
+      await cargarProveedor();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo rechazar el proveedor', { variant: 'error' });
     }
   }
 
@@ -253,6 +280,16 @@ export default function ProveedorDetalle() {
               <Input label="Categoría" {...register('categoria')} disabled={!tienePermiso('proveedores', 'editar')} />
 
               <div className="flex items-center gap-3 pt-2">
+                {proveedor.estado === 'en_evaluacion' && tienePermiso('proveedores', 'editar') && (
+                  <>
+                    <Button variant="success" icon={CheckCircle} onClick={onAprobar}>
+                      Aprobar
+                    </Button>
+                    <Button variant="danger" icon={XCircle} onClick={onRechazar}>
+                      Rechazar
+                    </Button>
+                  </>
+                )}
                 {tienePermiso('proveedores', 'editar') && <Button onClick={handleSubmit(onGuardar)}>Guardar cambios</Button>}
                 {tienePermiso('proveedores', 'eliminar') && (
                   <Button variant="danger" onClick={onEliminar}>
