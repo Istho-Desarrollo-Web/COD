@@ -17,6 +17,7 @@ Proveedores/Contratistas y Repositorio documental SGI.
 - Diseño de la vista de carpetas estilo Google Drive (navegación por tarjetas, migas de pan, y detalle de carpeta): `docs/superpowers/specs/2026-07-08-cod-carpetas-vista-drive-design.md`
 - Diseño del Detalle de Área (info del área, líder resuelto, conteo de carpetas/documentos, navegación cruzada): `docs/superpowers/specs/2026-07-09-cod-detalle-area-design.md`
 - Diseño del módulo de Proveedores y Contratistas (CRUD, expediente documental con checklist de requisitos, subida/descarga de documentos): `docs/superpowers/specs/2026-07-09-cod-proveedores-design.md`
+- Diseño de la aprobación de proveedores y creación de su carpeta en Documentos: `docs/superpowers/specs/2026-07-09-cod-proveedores-aprobacion-carpeta-design.md`
 - Integración futura con el CRM: `docs/architecture/crm-integration.md`
 
 ## Backend (`server/`)
@@ -69,7 +70,7 @@ La gestión de carpetas (`/documentos/carpetas`) es una vista de tarjetas navega
 
 El detalle de un área (`/areas/:id`, accesible desde `AreasListado`) muestra su información (nombre, código, salud documental, líder resuelto), y dos accesos directos con conteo: "Ver carpetas" (`/documentos/carpetas?areaId=`) y "Ver documentos" (`/documentos?areaId=`, con desglose por estado). Es de solo lectura — no permite editar ni dar de baja el área.
 
-El módulo de Proveedores y Contratistas (`/proveedores`) ya está implementado: listado con filtros (estado, tipo, criticidad), creación, y detalle (`/proveedores/:id`) con edición inline, baja lógica, y expediente documental — un checklist de los requisitos aplicables según la criticidad del proveedor (Cámara de Comercio, RUT, Certificado SST, Certificado SARLAFT, Póliza de responsabilidad civil), y subida/descarga/eliminación de los documentos que los cubren, con cálculo automático de vigencia (vigente/por vencer/vencido, umbral fijo de 30 días).
+El módulo de Proveedores y Contratistas (`/proveedores`) ya está implementado: listado con filtros (estado, tipo, criticidad), creación (con selección del área solicitante), y detalle (`/proveedores/:id`) con edición inline, baja lógica, y expediente documental — un checklist de los requisitos aplicables según la criticidad del proveedor (Cámara de Comercio, RUT, Certificado SST, Certificado SARLAFT, Póliza de responsabilidad civil), y subida/descarga/eliminación de los documentos que los cubren, con cálculo automático de vigencia (vigente/por vencer/vencido, umbral fijo de 30 días). Mientras el proveedor está `en_evaluacion`, se puede Aprobar (crea su carpeta en el área solicitante dentro del módulo Documentos, con una subcarpeta a su nombre bajo una carpeta raíz "Proveedores", y refleja ahí — una sola vez — cada documento ya subido al expediente) o Rechazar (con motivo).
 
 **Limitación conocida:** el nombre del líder solo se resuelve para usuarios con permiso `usuarios:ver` (hoy, solo `admin`) — `GET /usuarios/:id` está gateado por ese permiso, y los roles que acceden a `/areas/:id` (`financiera`, `lider_area`, `solicitante`, todos con `areas:ver`) no lo tienen. Para el resto de roles, la sección de líder muestra "Sin líder asignado" aunque sí haya uno asignado. Fast-follow pendiente: resolver el nombre del líder directamente en `GET /areas/:id` (backend) en vez de depender de `usuarioService.obtener`.
 
