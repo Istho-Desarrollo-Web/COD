@@ -8,6 +8,7 @@ import ProtectedLayout from './components/layout/ProtectedLayout';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/inicio/Dashboard';
 import AreasListado from './pages/areas/AreasListado';
+import AreaDetalle from './pages/areas/AreaDetalle';
 import DocumentosListado from './pages/documentos/DocumentosListado';
 import DocumentoDetalle from './pages/documentos/DocumentoDetalle';
 import CarpetasGestion from './pages/documentos/CarpetasGestion';
@@ -49,6 +50,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="areas" accion="ver">
                       <AreasListado />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/areas/:id"
+                  element={
+                    <PermissionRoute modulo="areas" accion="ver">
+                      <AreaDetalle />
                     </PermissionRoute>
                   }
                 />

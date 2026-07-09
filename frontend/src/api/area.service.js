@@ -10,4 +10,9 @@ async function crear(datos) {
   return response.data;
 }
 
-export default { listar, crear };
+async function obtener(id) {
+  const response = await apiClient.get(`/areas/${id}`);
+  return response.data;
+}
+
+export default { listar, crear, obtener };
