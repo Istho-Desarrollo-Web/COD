@@ -12,6 +12,7 @@ import AreaDetalle from './pages/areas/AreaDetalle';
 import DocumentosListado from './pages/documentos/DocumentosListado';
 import DocumentoDetalle from './pages/documentos/DocumentoDetalle';
 import CarpetasGestion from './pages/documentos/CarpetasGestion';
+import ProveedoresListado from './pages/proveedores/ProveedoresListado';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 import AdministracionInicio from './pages/administracion/AdministracionInicio';
 import UsuariosListado from './pages/administracion/UsuariosListado';
@@ -97,7 +98,7 @@ function App() {
                   path="/proveedores"
                   element={
                     <PermissionRoute modulo="proveedores" accion="ver">
-                      <ProximamentePage nombre="Proveedores y contratistas" />
+                      <ProveedoresListado />
                     </PermissionRoute>
                   }
                 />
