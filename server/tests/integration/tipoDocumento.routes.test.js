@@ -23,10 +23,10 @@ afterAll(async () => {
 });
 
 describe('GET /api/v1/tipos-documento', () => {
-  it('lists the 7 seeded active tipos de documento', async () => {
+  it('lists the 11 seeded active tipos de documento', async () => {
     const res = await request(app).get('/api/v1/tipos-documento').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    expect(res.body.data.length).toBe(7);
+    expect(res.body.data.length).toBe(11);
     expect(res.body.data.some((t) => t.nombre === 'Legal' && t.diasAlertaVencimientoDefault === 15)).toBe(true);
   });
 
