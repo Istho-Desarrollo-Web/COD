@@ -2,6 +2,7 @@ const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
 const { Proveedor, RequisitoProveedor, ProveedorDocumento, EvaluacionProveedor, Area, TipoDocumento, Carpeta } = require('../../src/models');
 const seedRequisitosProveedor = require('../../src/scripts/seedRequisitosProveedor');
+const seedTiposDocumento = require('../../src/scripts/seedTiposDocumento');
 
 beforeAll(async () => {
   await sequelize.authenticate();
@@ -21,6 +22,22 @@ describe('Proveedor domain', () => {
     const sarlaft = await RequisitoProveedor.findOne({ where: { nombre: 'Certificado SARLAFT' } });
     expect(sarlaft.criticidadMinima).toBe('alta');
     expect(sarlaft.vigenciaAplica).toBe(true);
+  });
+
+  it('seedRequisitosProveedor maps each requisito to a TipoDocumento of the same name', async () => {
+    await seedTiposDocumento();
+    await seedRequisitosProveedor();
+
+    const rut = await RequisitoProveedor.findOne({ where: { nombre: 'RUT' } });
+    const tipoRut = await TipoDocumento.findByPk(rut.tipoDocumentoId);
+    expect(tipoRut.nombre).toBe('RUT');
+
+    const sarlaft = await RequisitoProveedor.findOne({ where: { nombre: 'Certificado SARLAFT' } });
+    const tipoSarlaft = await TipoDocumento.findByPk(sarlaft.tipoDocumentoId);
+    expect(tipoSarlaft.nombre).toBe('Certificado SARLAFT');
+
+    const generico = await TipoDocumento.findOne({ where: { nombre: 'Documento de proveedor' } });
+    expect(generico).not.toBeNull();
   });
 
   it('links Proveedor -> ProveedorDocumento -> RequisitoProveedor and -> EvaluacionProveedor', async () => {

@@ -1,4 +1,4 @@
-const { RequisitoProveedor } = require('../models');
+const { RequisitoProveedor, TipoDocumento } = require('../models');
 
 const REQUISITOS = [
   { nombre: 'Cámara de Comercio', criticidadMinima: 'baja', obligatorio: true, vigenciaAplica: false },
@@ -10,6 +10,11 @@ const REQUISITOS = [
 
 module.exports = async function seedRequisitosProveedor() {
   for (const requisito of REQUISITOS) {
-    await RequisitoProveedor.findOrCreate({ where: { nombre: requisito.nombre }, defaults: requisito });
+    const [fila] = await RequisitoProveedor.findOrCreate({ where: { nombre: requisito.nombre }, defaults: requisito });
+
+    if (!fila.tipoDocumentoId) {
+      const tipoDocumento = await TipoDocumento.findOne({ where: { nombre: requisito.nombre } });
+      if (tipoDocumento) await fila.update({ tipoDocumentoId: tipoDocumento.id });
+    }
   }
 };
