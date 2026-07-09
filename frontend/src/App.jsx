@@ -13,6 +13,7 @@ import DocumentosListado from './pages/documentos/DocumentosListado';
 import DocumentoDetalle from './pages/documentos/DocumentoDetalle';
 import CarpetasGestion from './pages/documentos/CarpetasGestion';
 import ProveedoresListado from './pages/proveedores/ProveedoresListado';
+import ProveedorDetalle from './pages/proveedores/ProveedorDetalle';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 import AdministracionInicio from './pages/administracion/AdministracionInicio';
 import UsuariosListado from './pages/administracion/UsuariosListado';
@@ -99,6 +100,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="proveedores" accion="ver">
                       <ProveedoresListado />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/proveedores/:id"
+                  element={
+                    <PermissionRoute modulo="proveedores" accion="ver">
+                      <ProveedorDetalle />
                     </PermissionRoute>
                   }
                 />
