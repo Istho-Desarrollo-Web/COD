@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { SnackbarProvider } from 'notistack';
 import AreasListado from './AreasListado';
 import areaService from '../../api/area.service';
@@ -15,9 +16,14 @@ vi.mock('../../context/AuthContext');
 
 function renderPagina() {
   return render(
-    <SnackbarProvider>
-      <AreasListado />
-    </SnackbarProvider>
+    <MemoryRouter initialEntries={['/areas']}>
+      <SnackbarProvider>
+        <Routes>
+          <Route path="/areas" element={<AreasListado />} />
+          <Route path="/areas/:id" element={<p>Detalle de Área</p>} />
+        </Routes>
+      </SnackbarProvider>
+    </MemoryRouter>
   );
 }
 
@@ -264,5 +270,40 @@ describe('AreasListado', () => {
 
     expect(await screen.findByText('El usuario líder es obligatorio')).toBeInTheDocument();
     expect(areaService.crear).not.toHaveBeenCalled();
+  });
+
+  it('navigates to the área detail when a tarjeta is clicked', async () => {
+    useAuth.mockReturnValue({ isAdmin: false });
+    areaService.listar.mockResolvedValue([{ id: 1, nombre: 'Financiera', codigo: 'FIN', saludDocumentalPct: '92.0' }]);
+    renderPagina();
+
+    await screen.findByText('Financiera');
+    await userEvent.click(screen.getByLabelText('Ver como tarjetas'));
+    await userEvent.click(screen.getByText('Financiera'));
+
+    expect(await screen.findByText('Detalle de Área')).toBeInTheDocument();
+  });
+
+  it('navigates to the área detail via keyboard when a tarjeta is focused', async () => {
+    useAuth.mockReturnValue({ isAdmin: false });
+    areaService.listar.mockResolvedValue([{ id: 1, nombre: 'Financiera', codigo: 'FIN', saludDocumentalPct: '92.0' }]);
+    renderPagina();
+
+    await screen.findByText('Financiera');
+    await userEvent.click(screen.getByLabelText('Ver como tarjetas'));
+    screen.getByText('Financiera').closest('[role="button"]').focus();
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByText('Detalle de Área')).toBeInTheDocument();
+  });
+
+  it('navigates to the área detail when a table row is clicked', async () => {
+    useAuth.mockReturnValue({ isAdmin: false });
+    areaService.listar.mockResolvedValue([{ id: 1, nombre: 'Financiera', codigo: 'FIN', saludDocumentalPct: '92.0' }]);
+    renderPagina();
+
+    await userEvent.click(await screen.findByText('Financiera'));
+
+    expect(await screen.findByText('Detalle de Área')).toBeInTheDocument();
   });
 });

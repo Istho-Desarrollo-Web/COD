@@ -1,6 +1,7 @@
 // frontend/src/pages/areas/AreasListado.jsx
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { Plus, Building2, AlertCircle } from 'lucide-react';
 import areaService from '../../api/area.service';
@@ -24,9 +25,20 @@ function nivelSalud(pct) {
   return 'critico';
 }
 
-function AreaCard({ area }) {
+function AreaCard({ area, onClick }) {
   return (
-    <div className="bg-white dark:bg-centhrix-card rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="bg-white dark:bg-centhrix-card rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 cursor-pointer"
+    >
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="font-semibold text-slate-800 dark:text-slate-100">{area.nombre}</p>
@@ -41,6 +53,7 @@ function AreaCard({ area }) {
 
 export default function AreasListado() {
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { modo, setModo, esVistaMovil } = useViewMode('cod_view_areas');
   const [areas, setAreas] = useState([]);
@@ -174,12 +187,12 @@ export default function AreasListado() {
         <EmptyState icon={Building2} title="Sin áreas todavía" description="Crea la primera área para empezar a organizar documentos y solicitudes." />
       )}
 
-      {areas.length > 0 && modo === 'lista' && <DataTable columns={columnas} data={areas} loading={cargando} emptyMessage="Sin áreas todavía" />}
+      {areas.length > 0 && modo === 'lista' && <DataTable columns={columnas} data={areas} loading={cargando} emptyMessage="Sin áreas todavía" onRowClick={(area) => navigate(`/areas/${area.id}`)} />}
 
       {areas.length > 0 && modo === 'tarjetas' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {areas.map((area) => (
-            <AreaCard key={area.id} area={area} />
+            <AreaCard key={area.id} area={area} onClick={() => navigate(`/areas/${area.id}`)} />
           ))}
         </div>
       )}
