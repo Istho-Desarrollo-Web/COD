@@ -1,7 +1,7 @@
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
-const { Area, Carpeta, TipoDocumento, Documento } = require('../../src/models');
-const { ejecutar } = require('../../src/jobs/recalcularEstadosDocumentos.job');
+const { Area, Carpeta, TipoDocumento, Documento, Proveedor, ProveedorDocumento } = require('../../src/models');
+const { ejecutar, ejecutarProveedores } = require('../../src/jobs/recalcularEstadosDocumentos.job');
 
 function fechaEnDias(dias) {
   return new Date(Date.now() + dias * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -60,6 +60,41 @@ describe('recalcularEstadosDocumentos.job', () => {
     });
 
     await ejecutar();
+
+    await documento.reload();
+    expect(documento.estado).toBe('vigente');
+  });
+});
+
+describe('recalcularEstadosDocumentos.job — ejecutarProveedores', () => {
+  it('flips a proveedor document from vigente to vencido when its vigencia already passed', async () => {
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `920${Date.now()}`, razonSocial: 'Job Proveedor SAS',
+    });
+    const documento = await ProveedorDocumento.create({
+      proveedorId: proveedor.id,
+      vigenciaHasta: fechaEnDias(-1),
+      estado: 'vigente',
+    });
+
+    const resultado = await ejecutarProveedores();
+
+    await documento.reload();
+    expect(documento.estado).toBe('vencido');
+    expect(resultado.documentosActualizados).toBeGreaterThanOrEqual(1);
+  });
+
+  it('leaves an already-correct estado untouched', async () => {
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `921${Date.now()}`, razonSocial: 'Job Proveedor Vigente SAS',
+    });
+    const documento = await ProveedorDocumento.create({
+      proveedorId: proveedor.id,
+      vigenciaHasta: fechaEnDias(365),
+      estado: 'vigente',
+    });
+
+    await ejecutarProveedores();
 
     await documento.reload();
     expect(documento.estado).toBe('vigente');

@@ -26,11 +26,30 @@ async function ejecutar() {
   return { documentosActualizados, areasRecalculadas: areasAfectadas.size };
 }
 
+async function ejecutarProveedores() {
+  const { ProveedorDocumento } = require('../models');
+  const { calcularEstadoProveedorDocumento } = require('../services/proveedorDocumento.service');
+
+  const documentos = await ProveedorDocumento.findAll();
+  let documentosActualizados = 0;
+
+  for (const documento of documentos) {
+    const estado = calcularEstadoProveedorDocumento({ vigenciaHasta: documento.vigenciaHasta });
+    if (estado !== documento.estado) {
+      await documento.update({ estado });
+      documentosActualizados += 1;
+    }
+  }
+
+  return { documentosActualizados };
+}
+
 function programar() {
   const expresion = process.env.CRON_RECALCULO_ESTADOS || '0 3 * * *';
   cron.schedule(expresion, () => {
     ejecutar().catch((err) => console.error('Error en job recalcularEstadosDocumentos:', err));
+    ejecutarProveedores().catch((err) => console.error('Error en job recalcularEstadosDocumentos (proveedores):', err));
   });
 }
 
-module.exports = { ejecutar, programar };
+module.exports = { ejecutar, ejecutarProveedores, programar };
