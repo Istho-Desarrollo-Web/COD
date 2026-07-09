@@ -68,6 +68,8 @@ La gestión de carpetas (`/documentos/carpetas`) es una vista de tarjetas navega
 
 El detalle de un área (`/areas/:id`, accesible desde `AreasListado`) muestra su información (nombre, código, salud documental, líder resuelto), y dos accesos directos con conteo: "Ver carpetas" (`/documentos/carpetas?areaId=`) y "Ver documentos" (`/documentos?areaId=`, con desglose por estado). Es de solo lectura — no permite editar ni dar de baja el área.
 
+**Limitación conocida:** el nombre del líder solo se resuelve para usuarios con permiso `usuarios:ver` (hoy, solo `admin`) — `GET /usuarios/:id` está gateado por ese permiso, y los roles que acceden a `/areas/:id` (`financiera`, `lider_area`, `solicitante`, todos con `areas:ver`) no lo tienen. Para el resto de roles, la sección de líder muestra "Sin líder asignado" aunque sí haya uno asignado. Fast-follow pendiente: resolver el nombre del líder directamente en `GET /areas/:id` (backend) en vez de depender de `usuarioService.obtener`.
+
 ### Convenciones de nombres (estado y variables)
 
 - **Idioma:** nombres de estado, props y campos de dominio en español (`cargando`, `modalAbierto`, `usuarios`, `areaId`), consistente con el resto del código. Excepción deliberada: los campos de paginación (`page`, `limit`, `total`, `totalPages`) se dejan en inglés porque replican 1:1 el contrato del backend (mismos nombres en el query param y en el envelope de `paginated()` — ver `server/src/utils/responses.js`); traducirlos solo agregaría una capa de mapeo sin beneficio.
