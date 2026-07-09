@@ -35,9 +35,9 @@ const ARBOL = [
   { id: 12, nombre: 'Proveedores', areaId: 1, carpetaPadreId: null, createdAt: '2026-01-06T00:00:00.000Z', subcarpetas: [] },
 ];
 
-function renderPagina() {
+function renderPagina(ruta = '/documentos/carpetas') {
   return render(
-    <MemoryRouter initialEntries={['/documentos/carpetas']}>
+    <MemoryRouter initialEntries={[ruta]}>
       <SnackbarProvider>
         <Routes>
           <Route path="/documentos/carpetas" element={<CarpetasGestion />} />
@@ -218,6 +218,14 @@ describe('CarpetasGestion', () => {
   it('navigates back to Documentos', async () => {
     renderPagina();
     expect(screen.getByRole('link', { name: /volver a documentos/i })).toHaveAttribute('href', '/documentos');
+  });
+
+  it('preselects the área from the areaId query param on mount', async () => {
+    renderPagina('/documentos/carpetas?areaId=1');
+
+    await waitFor(() => expect(carpetaService.listar).toHaveBeenCalledWith(1));
+    await waitFor(() => expect(screen.getByLabelText('Área de las carpetas')).toHaveTextContent('RRHH'));
+    expect(await screen.findByRole('button', { name: 'Contratos' })).toBeInTheDocument();
   });
 
   it('lands on the real DocumentosListado, pre-filtered, after "Ver documentos de esta carpeta"', async () => {

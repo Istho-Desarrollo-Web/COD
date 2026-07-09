@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useSnackbar } from 'notistack';
 import { ArrowLeft, ChevronRight, FileText, Folder, Info, Plus } from 'lucide-react';
@@ -49,9 +49,13 @@ function CarpetaCard({ carpeta, onAbrir, onVerDetalle }) {
 
 export default function CarpetasGestion() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { enqueueSnackbar } = useSnackbar();
   const [areas, setAreas] = useState([]);
-  const [areaId, setAreaId] = useState('');
+  const [areaId, setAreaId] = useState(() => {
+    const areaIdParam = searchParams.get('areaId');
+    return areaIdParam ? Number(areaIdParam) : '';
+  });
   const [arbol, setArbol] = useState([]);
   const [carpetaActualId, setCarpetaActualId] = useState(null);
   const [detalleId, setDetalleId] = useState(null);
