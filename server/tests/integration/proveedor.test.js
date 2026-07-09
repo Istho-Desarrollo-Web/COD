@@ -57,6 +57,12 @@ describe('Columnas de aprobación (areaSolicitanteId, tipoDocumentoId, proveedor
     await requisito.update({ tipoDocumentoId: tipoDocumento.id });
     const recargado = await RequisitoProveedor.findByPk(requisito.id);
     expect(recargado.tipoDocumentoId).toBe(tipoDocumento.id);
+
+    // Limpieza: la base de test es persistente entre archivos, así que hay que
+    // restaurar el estado original del seed y borrar el registro creado en este test
+    // para no romper los conteos exactos de otros archivos de test.
+    await requisito.update({ tipoDocumentoId: null });
+    await tipoDocumento.destroy();
   });
 
   it('Carpeta.proveedorId referencia un Proveedor, y es opcional para carpetas normales', async () => {
