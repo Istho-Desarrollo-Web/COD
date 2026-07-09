@@ -1,0 +1,71 @@
+const fs = require('fs');
+const path = require('path');
+const { calcularEstadoDocumento } = require('./documento.service');
+const { guardarArchivo, obtenerRutaAbsoluta } = require('./almacenamiento.service');
+
+async function aprobarProveedor(proveedor) {
+  const { sequelize, Carpeta, Documento, ProveedorDocumento, RequisitoProveedor, TipoDocumento } = require('../models');
+
+  return sequelize.transaction(async (t) => {
+    const areaId = proveedor.areaSolicitanteId;
+
+    const [carpetaRaiz] = await Carpeta.findOrCreate({
+      where: { areaId, proveedorId: null, carpetaPadreId: null, nombre: 'Proveedores' },
+      transaction: t,
+    });
+
+    const subcarpeta = await Carpeta.create(
+      { areaId, carpetaPadreId: carpetaRaiz.id, proveedorId: proveedor.id, nombre: proveedor.razonSocial },
+      { transaction: t }
+    );
+
+    const documentosExpediente = await ProveedorDocumento.findAll({ where: { proveedorId: proveedor.id }, transaction: t });
+    const tipoGenerico = await TipoDocumento.findOne({ where: { nombre: 'Documento de proveedor' }, transaction: t });
+
+    let documentosReflejados = 0;
+    for (const documentoExpediente of documentosExpediente) {
+      if (!documentoExpediente.s3Key) continue;
+
+      let nombreDocumento = 'Documento de proveedor';
+      let tipoDocumentoId = tipoGenerico.id;
+      if (documentoExpediente.requisitoId) {
+        const requisito = await RequisitoProveedor.findByPk(documentoExpediente.requisitoId, { transaction: t });
+        if (requisito) {
+          nombreDocumento = requisito.nombre;
+          if (requisito.tipoDocumentoId) tipoDocumentoId = requisito.tipoDocumentoId;
+        }
+      }
+
+      const bufferOriginal = fs.readFileSync(obtenerRutaAbsoluta(documentoExpediente.s3Key));
+      const extension = path.extname(documentoExpediente.s3Key);
+      const { ruta } = guardarArchivo({ originalname: `${nombreDocumento}${extension}`, buffer: bufferOriginal }, areaId);
+
+      const tipoDocumento = await TipoDocumento.findByPk(tipoDocumentoId, { transaction: t });
+      const estado = calcularEstadoDocumento({
+        vigenciaHasta: documentoExpediente.vigenciaHasta,
+        diasAlerta: tipoDocumento.diasAlertaVencimientoDefault,
+      });
+
+      await Documento.create(
+        {
+          areaId,
+          carpetaId: subcarpeta.id,
+          tipoDocumentoId,
+          nombre: nombreDocumento,
+          vigenciaDesde: documentoExpediente.vigenciaDesde,
+          vigenciaHasta: documentoExpediente.vigenciaHasta,
+          estado,
+          s3Key: ruta,
+        },
+        { transaction: t }
+      );
+      documentosReflejados += 1;
+    }
+
+    await proveedor.update({ estado: 'activo' }, { transaction: t });
+
+    return { carpeta: subcarpeta, documentosReflejados };
+  });
+}
+
+module.exports = { aprobarProveedor };

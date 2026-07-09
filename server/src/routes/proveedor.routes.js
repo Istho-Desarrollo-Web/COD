@@ -12,6 +12,8 @@ router.post('/', verificarToken, requierePermiso('proveedores', 'crear'), asyncH
 router.get('/:id', verificarToken, requierePermiso('proveedores', 'ver'), asyncHandler(controller.obtener));
 router.put('/:id', verificarToken, requierePermiso('proveedores', 'editar'), asyncHandler(controller.editar));
 router.delete('/:id', verificarToken, requierePermiso('proveedores', 'eliminar'), asyncHandler(controller.eliminar));
+router.post('/:id/aprobar', verificarToken, requierePermiso('proveedores', 'editar'), asyncHandler(controller.aprobar));
+router.post('/:id/rechazar', verificarToken, requierePermiso('proveedores', 'editar'), asyncHandler(controller.rechazar));
 
 router.get('/:id/documentos', verificarToken, requierePermiso('proveedores', 'ver'), asyncHandler(documentoController.listar));
 router.post('/:id/documentos', verificarToken, requierePermiso('proveedores', 'editar'), subirArchivoUnico, asyncHandler(documentoController.crear));

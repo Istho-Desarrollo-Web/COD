@@ -1,5 +1,6 @@
 const { Proveedor, Auditoria } = require('../models');
-const { success, created, notFound, badRequest } = require('../utils/responses');
+const { success, created, notFound, badRequest, serverError } = require('../utils/responses');
+const { aprobarProveedor } = require('../services/proveedorAprobacion.service');
 
 async function listar(req, res) {
   const { estado, tipo, criticidad } = req.query;
@@ -83,4 +84,49 @@ async function eliminar(req, res) {
   return success(res, null, 'Proveedor dado de baja');
 }
 
-module.exports = { listar, obtener, crear, editar, eliminar };
+async function aprobar(req, res) {
+  const proveedor = await Proveedor.findByPk(req.params.id);
+  if (!proveedor) return notFound(res, 'Proveedor no encontrado');
+  if (proveedor.estado !== 'en_evaluacion') return badRequest(res, 'El proveedor ya fue aprobado o rechazado');
+  if (!proveedor.areaSolicitanteId) return badRequest(res, 'Completa el área solicitante antes de aprobar');
+
+  let resultado;
+  try {
+    resultado = await aprobarProveedor(proveedor);
+  } catch (err) {
+    return serverError(res, `No se pudo completar la aprobación: ${err.message}`, err);
+  }
+
+  const proveedorActualizado = await Proveedor.findByPk(proveedor.id);
+
+  await Auditoria.registrar({
+    tabla: 'proveedores', registroId: proveedor.id, accion: 'actualizar',
+    usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto,
+    descripcion: `Proveedor aprobado — ${resultado.documentosReflejados} documento(s) reflejado(s) en la carpeta`,
+    datosNuevos: proveedorActualizado.toJSON(),
+  });
+
+  return success(res, { proveedor: proveedorActualizado, carpeta: resultado.carpeta, documentosReflejados: resultado.documentosReflejados });
+}
+
+async function rechazar(req, res) {
+  const proveedor = await Proveedor.findByPk(req.params.id);
+  if (!proveedor) return notFound(res, 'Proveedor no encontrado');
+  if (proveedor.estado !== 'en_evaluacion') return badRequest(res, 'El proveedor ya fue aprobado o rechazado');
+
+  const { motivo } = req.body;
+  if (!motivo) return badRequest(res, 'El motivo del rechazo es obligatorio');
+
+  const datosAnteriores = proveedor.toJSON();
+  await proveedor.update({ estado: 'inactivo' });
+
+  await Auditoria.registrar({
+    tabla: 'proveedores', registroId: proveedor.id, accion: 'actualizar',
+    usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto,
+    descripcion: `Proveedor rechazado: ${motivo}`, datosAnteriores, datosNuevos: proveedor.toJSON(),
+  });
+
+  return success(res, proveedor, 'Proveedor rechazado');
+}
+
+module.exports = { listar, obtener, crear, editar, eliminar, aprobar, rechazar };

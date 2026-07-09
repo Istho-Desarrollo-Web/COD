@@ -1,4 +1,5 @@
 const request = require('supertest');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
@@ -166,5 +167,83 @@ describe('Requisitos de Proveedor API', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBe(5);
     expect(res.body.data.some((r) => r.nombre === 'Certificado SARLAFT')).toBe(true);
+  });
+});
+
+describe('Aprobar y rechazar proveedor', () => {
+  it('aprueba un proveedor en_evaluacion, crea su carpeta y refleja los documentos del expediente', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `940${Date.now()}`, razonSocial: 'Aprobación Ruta SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    await request(app)
+      .post(`/api/v1/proveedores/${id}/documentos`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('archivo', path.join(__dirname, '../fixtures/documento-prueba.pdf'));
+
+    const aprobarRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${token}`);
+    expect(aprobarRes.status).toBe(200);
+    expect(aprobarRes.body.data.proveedor.estado).toBe('activo');
+    expect(aprobarRes.body.data.documentosReflejados).toBe(1);
+    expect(aprobarRes.body.data.carpeta.nombre).toBe('Aprobación Ruta SAS');
+  });
+
+  it('returns 400 when approving a proveedor that is not en_evaluacion', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `941${Date.now()}`, razonSocial: 'Doble Aprobación SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${token}`);
+    const segundaRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${token}`);
+    expect(segundaRes.status).toBe(400);
+  });
+
+  it('returns 400 when approving a proveedor without areaSolicitanteId', async () => {
+    const proveedorSinArea = await require('../../src/models').Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `942${Date.now()}`, razonSocial: 'Sin Área Aprobación SAS',
+    });
+    const res = await request(app).post(`/api/v1/proveedores/${proveedorSinArea.id}/aprobar`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+
+  it('rechaza un proveedor en_evaluacion con motivo', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `943${Date.now()}`, razonSocial: 'Rechazo SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    const rechazarRes = await request(app)
+      .post(`/api/v1/proveedores/${id}/rechazar`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ motivo: 'Documentación incompleta' });
+    expect(rechazarRes.status).toBe(200);
+    expect(rechazarRes.body.data.estado).toBe('inactivo');
+  });
+
+  it('returns 400 when rechazando without motivo', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `944${Date.now()}`, razonSocial: 'Sin Motivo SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    const res = await request(app).post(`/api/v1/proveedores/${id}/rechazar`).set('Authorization', `Bearer ${token}`).send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 403 when solicitante tries to approve a proveedor', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `945${Date.now()}`, razonSocial: 'No Autorizado Aprobar SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    const res = await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${solicitanteToken}`);
+    expect(res.status).toBe(403);
   });
 });
