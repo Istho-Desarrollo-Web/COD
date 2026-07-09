@@ -25,7 +25,7 @@ describe('Carpeta + TipoDocumento', () => {
     await seedTiposDocumento();
     await seedTiposDocumento();
     const count = await TipoDocumento.count();
-    expect(count).toBe(7);
+    expect(count).toBe(11);
     const legal = await TipoDocumento.findOne({ where: { nombre: 'Legal' } });
     expect(legal.diasAlertaVencimientoDefault).toBe(15);
   });
