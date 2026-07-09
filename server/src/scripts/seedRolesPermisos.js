@@ -17,7 +17,7 @@ const PERMISOS_POR_ROL = {
   financiera: {
     inicio: ['ver'], areas: ['ver'], documentos: ['ver'],
     solicitudes: ['ver', 'crear', 'comentar', 'cotizar', 'aprobar', 'confirmar', 'exportar'],
-    proveedores: ['ver'], formularios: ['ver'], reportes: ['ver', 'exportar'], perfil: ['ver', 'cambiar_password'],
+    proveedores: ['ver', 'crear', 'editar'], formularios: ['ver'], reportes: ['ver', 'exportar'], perfil: ['ver', 'cambiar_password'],
   },
   lider_area: {
     inicio: ['ver'], areas: ['ver'], area_detalle: ['ver'],
@@ -47,6 +47,20 @@ module.exports = async function seedRolesPermisos() {
         defaults: { rolId: rol.id, modulo, acciones },
       });
     }
+  }
+
+  // findOrCreate arriba no actualiza filas que ya existían con una matriz de
+  // permisos anterior. `financiera` tenía `proveedores: ['ver']` desde el
+  // diseño original de RBAC; este módulo le agrega `crear`/`editar`, así que
+  // cualquier entorno donde el seed ya corrió antes necesita esta corrección
+  // explícita para que el cambio realmente tome efecto (en vez de quedar
+  // silenciosamente ignorado por el findOrCreate de arriba).
+  const financieraRol = await Rol.findOne({ where: { nombre: 'financiera' } });
+  if (financieraRol) {
+    await RolPermiso.update(
+      { acciones: PERMISOS_POR_ROL.financiera.proveedores },
+      { where: { rolId: financieraRol.id, modulo: 'proveedores' } }
+    );
   }
 
   const adminRol = await Rol.findOne({ where: { nombre: 'admin' } });

@@ -8,5 +8,7 @@ router.use('/carpetas', require('./carpeta.routes'));
 router.use('/documentos', require('./documento.routes'));
 router.use('/roles', require('./rol.routes'));
 router.use('/usuarios', require('./usuario.routes'));
+router.use('/proveedores', require('./proveedor.routes'));
+router.use('/requisitos-proveedor', require('./requisitoProveedor.routes'));
 
 module.exports = router;
