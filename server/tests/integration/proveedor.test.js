@@ -1,6 +1,6 @@
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
-const { Proveedor, RequisitoProveedor, ProveedorDocumento, EvaluacionProveedor } = require('../../src/models');
+const { Proveedor, RequisitoProveedor, ProveedorDocumento, EvaluacionProveedor, Area, TipoDocumento, Carpeta } = require('../../src/models');
 const seedRequisitosProveedor = require('../../src/scripts/seedRequisitosProveedor');
 
 beforeAll(async () => {
@@ -38,5 +38,36 @@ describe('Proveedor domain', () => {
 
     expect(documento.proveedorId).toBe(proveedor.id);
     expect(evaluacion.proveedorId).toBe(proveedor.id);
+  });
+});
+
+describe('Columnas de aprobación (areaSolicitanteId, tipoDocumentoId, proveedorId)', () => {
+  it('Proveedor.areaSolicitanteId referencia un Area', async () => {
+    const area = await Area.create({ nombre: 'Compras', codigo: `COMPRAS${Date.now()}` });
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `920${Date.now()}`, razonSocial: 'Con Área SAS',
+      areaSolicitanteId: area.id,
+    });
+    expect(proveedor.areaSolicitanteId).toBe(area.id);
+  });
+
+  it('RequisitoProveedor.tipoDocumentoId referencia un TipoDocumento', async () => {
+    const tipoDocumento = await TipoDocumento.create({ nombre: `Tipo Prueba ${Date.now()}` });
+    const requisito = await RequisitoProveedor.findOne({ where: { nombre: 'RUT' } });
+    await requisito.update({ tipoDocumentoId: tipoDocumento.id });
+    const recargado = await RequisitoProveedor.findByPk(requisito.id);
+    expect(recargado.tipoDocumentoId).toBe(tipoDocumento.id);
+  });
+
+  it('Carpeta.proveedorId referencia un Proveedor, y es opcional para carpetas normales', async () => {
+    const area = await Area.create({ nombre: 'Compras 2', codigo: `COMPRAS2${Date.now()}` });
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `921${Date.now()}`, razonSocial: 'Con Carpeta SAS', areaSolicitanteId: area.id,
+    });
+    const carpetaNormal = await Carpeta.create({ areaId: area.id, nombre: 'Procesos' });
+    const carpetaDeProveedor = await Carpeta.create({ areaId: area.id, nombre: proveedor.razonSocial, proveedorId: proveedor.id });
+
+    expect(carpetaNormal.proveedorId).toBeNull();
+    expect(carpetaDeProveedor.proveedorId).toBe(proveedor.id);
   });
 });

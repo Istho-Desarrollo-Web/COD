@@ -64,6 +64,13 @@ ProveedorDocumento.belongsTo(RequisitoProveedor, { foreignKey: 'requisitoId' });
 Proveedor.hasMany(EvaluacionProveedor, { foreignKey: 'proveedorId' });
 EvaluacionProveedor.belongsTo(Proveedor, { foreignKey: 'proveedorId' });
 
+Area.hasMany(Proveedor, { foreignKey: 'areaSolicitanteId' });
+Proveedor.belongsTo(Area, { foreignKey: 'areaSolicitanteId' });
+TipoDocumento.hasMany(RequisitoProveedor, { foreignKey: 'tipoDocumentoId' });
+RequisitoProveedor.belongsTo(TipoDocumento, { foreignKey: 'tipoDocumentoId' });
+Proveedor.hasMany(Carpeta, { foreignKey: 'proveedorId' });
+Carpeta.belongsTo(Proveedor, { foreignKey: 'proveedorId' });
+
 module.exports = {
   sequelize, Usuario, Rol, Permiso, RolPermiso, Auditoria,
   Area, Carpeta, TipoDocumento, Documento, DocumentoVersionHistorial, PlantillaFormulario,

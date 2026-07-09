@@ -10,6 +10,7 @@ module.exports = (sequelize) =>
       criticidad: { type: DataTypes.ENUM('alta', 'media', 'baja'), allowNull: false, defaultValue: 'media' },
       categoria: { type: DataTypes.STRING(100), allowNull: true },
       responsableUsuarioId: { type: DataTypes.INTEGER, allowNull: true },
+      areaSolicitanteId: { type: DataTypes.INTEGER, allowNull: true },
       estado: { type: DataTypes.ENUM('activo', 'inactivo', 'en_evaluacion', 'suspendido'), allowNull: false, defaultValue: 'en_evaluacion' },
       fechaUltimaEvaluacion: { type: DataTypes.DATEONLY, allowNull: true },
       fechaProximaEvaluacion: { type: DataTypes.DATEONLY, allowNull: true },
