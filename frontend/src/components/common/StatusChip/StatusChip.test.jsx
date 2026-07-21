@@ -27,4 +27,9 @@ describe('StatusChip', () => {
     render(<StatusChip status="suspendido" />);
     expect(screen.getByText('suspendido')).toBeInTheDocument();
   });
+
+  it('renders "info", "warn" and "error" for log-level statuses', () => {
+    render(<StatusChip status="info" />);
+    expect(screen.getByText('info')).toBeInTheDocument();
+  });
 });

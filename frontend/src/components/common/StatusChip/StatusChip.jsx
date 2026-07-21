@@ -15,6 +15,10 @@ const STATUS_CONFIG = {
   vencido: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'vencido' },
   sin_vigencia: { bg: 'bg-gray-100 dark:bg-centhrix-surface', text: 'text-gray-700 dark:text-slate-300', label: 'sin vigencia' },
 
+  info: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'info' },
+  warn: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'warn' },
+  error: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'error' },
+
   borrador: { bg: 'bg-gray-100 dark:bg-centhrix-surface', text: 'text-gray-700 dark:text-slate-300', label: 'borrador' },
   cotizando: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'cotizando' },
   en_aprobacion: { bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-400', label: 'en aprobación' },

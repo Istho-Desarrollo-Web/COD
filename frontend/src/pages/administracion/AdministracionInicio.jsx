@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Users } from 'lucide-react';
+import { Users, ScrollText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const SUBMODULOS = [{ path: '/administracion/usuarios', label: 'Usuarios', icon: Users, modulo: 'usuarios' }];
+const SUBMODULOS = [
+  { path: '/administracion/usuarios', label: 'Usuarios', icon: Users, modulo: 'usuarios' },
+  { path: '/administracion/logs', label: 'Logs del servidor', icon: ScrollText, modulo: 'logs_servidor' },
+];
 
 export default function AdministracionInicio() {
   const { tienePermiso } = useAuth();

@@ -17,6 +17,7 @@ import ProveedorDetalle from './pages/proveedores/ProveedorDetalle';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 import AdministracionInicio from './pages/administracion/AdministracionInicio';
 import UsuariosListado from './pages/administracion/UsuariosListado';
+import LogsServidor from './pages/administracion/LogsServidor';
 
 const snackbarConfig = {
   maxSnack: 3,
@@ -133,6 +134,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="usuarios" accion="ver">
                       <UsuariosListado />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/administracion/logs"
+                  element={
+                    <PermissionRoute modulo="logs_servidor" accion="ver">
+                      <LogsServidor />
                     </PermissionRoute>
                   }
                 />
