@@ -10,7 +10,8 @@
     "migration:up": "node src/scripts/migrate-cli.js up",
     "migration:down": "node src/scripts/migrate-cli.js down",
     "migration:status": "node src/scripts/migrate-cli.js status",
-    "job:recalcular-estados": "node src/scripts/ejecutarRecalculoEstados.js"
+    "job:recalcular-estados": "node src/scripts/ejecutarRecalculoEstados.js",
+    "job:purgar-logs": "node src/scripts/purgarLogsServidor.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
