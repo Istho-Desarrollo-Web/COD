@@ -16,6 +16,7 @@ const CATALOGO_MODULOS = {
   matriz_accesos: ['ver', 'editar'],
   sesiones: ['ver', 'cerrar'],
   auditoria: ['ver'],
+  logs_servidor: ['ver'],
   perfil: ['ver', 'cambiar_password'],
 };
 
