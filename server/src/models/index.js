@@ -20,6 +20,7 @@ const Proveedor = require('./Proveedor')(sequelize);
 const RequisitoProveedor = require('./RequisitoProveedor')(sequelize);
 const ProveedorDocumento = require('./ProveedorDocumento')(sequelize);
 const EvaluacionProveedor = require('./EvaluacionProveedor')(sequelize);
+const LogServidor = require('./LogServidor')(sequelize);
 
 Rol.hasMany(Usuario, { foreignKey: 'rolId' });
 Usuario.belongsTo(Rol, { foreignKey: 'rolId' });
@@ -76,4 +77,5 @@ module.exports = {
   Area, Carpeta, TipoDocumento, Documento, DocumentoVersionHistorial, PlantillaFormulario,
   TipoSolicitud, NivelAprobacion, Solicitud, Cotizacion, SolicitudAprobacion,
   Proveedor, RequisitoProveedor, ProveedorDocumento, EvaluacionProveedor,
+  LogServidor,
 };
