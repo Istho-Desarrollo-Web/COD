@@ -6,6 +6,8 @@ const { sequelize, connectWithRetry } = require('./src/config/database');
 const { createMigrator } = require('./src/config/migrator');
 const { programar: programarRecalculoEstados } = require('./src/jobs/recalcularEstadosDocumentos.job');
 const { error, conflict, serverError, badRequest } = require('./src/utils/responses');
+const { registrarLogsRequest } = require('./src/middlewares/logServidor.middleware');
+const { registrar: registrarLogServidor } = require('./src/services/logServidor.service');
 
 function validateEnv() {
   const isProduccion = process.env.NODE_ENV === 'production';
@@ -31,6 +33,7 @@ app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(compression());
 app.use(express.json());
+app.use(registrarLogsRequest);
 
 app.get('/health', async (req, res) => {
   let dbStatus = 'connecting';
@@ -51,7 +54,19 @@ app.get('/health', async (req, res) => {
 app.use('/api/v1', require('./src/routes'));
 
 // eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
+app.use(async (err, req, res, next) => {
+  await registrarLogServidor({
+    nivel: 'error',
+    metodo: req.method,
+    ruta: req.originalUrl,
+    statusCode: null,
+    mensaje: err.message || 'Error desconocido',
+    stack: err.stack,
+    usuarioId: req.user?.id || null,
+    usuarioNombre: req.user?.nombreCompleto || null,
+    ip: req.ip,
+  });
+
   if (err.name === 'SequelizeUniqueConstraintError') {
     return conflict(res, 'El registro ya existe', err);
   }
