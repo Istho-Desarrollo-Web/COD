@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Users, ScrollText } from 'lucide-react';
+import { Users, ScrollText, Grid3x3 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const SUBMODULOS = [
   { path: '/administracion/usuarios', label: 'Usuarios', icon: Users, modulo: 'usuarios' },
+  { path: '/administracion/matriz-accesos', label: 'Matriz de accesos', icon: Grid3x3, modulo: 'matriz_accesos' },
   { path: '/administracion/logs', label: 'Logs del servidor', icon: ScrollText, modulo: 'logs_servidor' },
 ];
 

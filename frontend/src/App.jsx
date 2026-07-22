@@ -17,6 +17,7 @@ import ProveedorDetalle from './pages/proveedores/ProveedorDetalle';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 import AdministracionInicio from './pages/administracion/AdministracionInicio';
 import UsuariosListado from './pages/administracion/UsuariosListado';
+import MatrizAccesos from './pages/administracion/MatrizAccesos';
 import LogsServidor from './pages/administracion/LogsServidor';
 
 const snackbarConfig = {
@@ -134,6 +135,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="usuarios" accion="ver">
                       <UsuariosListado />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/administracion/matriz-accesos"
+                  element={
+                    <PermissionRoute modulo="matriz_accesos" accion="ver">
+                      <MatrizAccesos />
                     </PermissionRoute>
                   }
                 />

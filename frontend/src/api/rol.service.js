@@ -5,4 +5,9 @@ async function listar() {
   return response.data;
 }
 
-export default { listar };
+async function matrizAccesos() {
+  const response = await apiClient.get('/roles/matriz-accesos');
+  return response.data;
+}
+
+export default { listar, matrizAccesos };
