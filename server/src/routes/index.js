@@ -9,6 +9,7 @@ router.use('/documentos', require('./documento.routes'));
 router.use('/roles', require('./rol.routes'));
 router.use('/usuarios', require('./usuario.routes'));
 router.use('/proveedores', require('./proveedor.routes'));
+router.use('/solicitudes', require('./solicitud.routes'));
 router.use('/requisitos-proveedor', require('./requisitoProveedor.routes'));
 router.use('/logs-servidor', require('./logServidor.routes'));
 

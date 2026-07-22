@@ -1,0 +1,19 @@
+const express = require('express');
+const router = express.Router();
+const { verificarToken } = require('../middlewares/auth');
+const { requierePermiso } = require('../middlewares/roles');
+const { subirArchivoUnico } = require('../middlewares/upload');
+const controller = require('../controllers/solicitud.controller');
+const asyncHandler = require('../utils/asyncHandler');
+
+router.get('/', verificarToken, requierePermiso('solicitudes', 'ver'), asyncHandler(controller.listar));
+router.post('/', verificarToken, requierePermiso('solicitudes', 'crear'), asyncHandler(controller.crear));
+router.get('/tipos', verificarToken, requierePermiso('solicitudes', 'ver'), asyncHandler(controller.listarTipos));
+router.get('/:id', verificarToken, requierePermiso('solicitudes', 'ver'), asyncHandler(controller.obtener));
+router.post('/:id/enviar-aprobacion', verificarToken, requierePermiso('solicitudes', 'cotizar'), asyncHandler(controller.enviarAprobacion));
+router.post('/:id/aprobar', verificarToken, requierePermiso('solicitudes', 'aprobar'), asyncHandler(controller.aprobar));
+router.post('/:id/rechazar', verificarToken, requierePermiso('solicitudes', 'aprobar'), asyncHandler(controller.rechazar));
+router.post('/:id/confirmar', verificarToken, requierePermiso('solicitudes', 'confirmar'), subirArchivoUnico, asyncHandler(controller.confirmar));
+router.post('/:id/cancelar', verificarToken, requierePermiso('solicitudes', 'crear'), asyncHandler(controller.cancelar));
+
+module.exports = router;
