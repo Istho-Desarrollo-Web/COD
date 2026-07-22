@@ -23,6 +23,7 @@ const EvaluacionProveedor = require('./EvaluacionProveedor')(sequelize);
 const LogServidor = require('./LogServidor')(sequelize);
 const UsuarioRol = require('./UsuarioRol')(sequelize);
 const UsuarioProveedor = require('./UsuarioProveedor')(sequelize);
+const SolicitudComentario = require('./SolicitudComentario')(sequelize);
 
 Usuario.belongsToMany(Rol, { through: UsuarioRol, as: 'roles', foreignKey: 'usuarioId', otherKey: 'rolId' });
 Rol.belongsToMany(Usuario, { through: UsuarioRol, as: 'usuarios', foreignKey: 'rolId', otherKey: 'usuarioId' });
@@ -63,6 +64,11 @@ Solicitud.hasMany(SolicitudAprobacion, { foreignKey: 'solicitudId' });
 SolicitudAprobacion.belongsTo(Solicitud, { foreignKey: 'solicitudId' });
 SolicitudAprobacion.belongsTo(NivelAprobacion, { foreignKey: 'nivelAprobacionId' });
 
+Solicitud.hasMany(SolicitudComentario, { foreignKey: 'solicitudId' });
+SolicitudComentario.belongsTo(Solicitud, { foreignKey: 'solicitudId' });
+Usuario.hasMany(SolicitudComentario, { foreignKey: 'usuarioId' });
+SolicitudComentario.belongsTo(Usuario, { foreignKey: 'usuarioId' });
+
 Proveedor.hasMany(ProveedorDocumento, { foreignKey: 'proveedorId' });
 ProveedorDocumento.belongsTo(Proveedor, { foreignKey: 'proveedorId' });
 RequisitoProveedor.hasMany(ProveedorDocumento, { foreignKey: 'requisitoId' });
@@ -83,7 +89,7 @@ Proveedor.belongsToMany(Usuario, { through: UsuarioProveedor, as: 'colaboradores
 module.exports = {
   sequelize, Usuario, Rol, Permiso, RolPermiso, UsuarioRol, UsuarioProveedor, Auditoria,
   Area, Carpeta, TipoDocumento, Documento, DocumentoVersionHistorial, PlantillaFormulario,
-  TipoSolicitud, NivelAprobacion, Solicitud, Cotizacion, SolicitudAprobacion,
+  TipoSolicitud, NivelAprobacion, Solicitud, Cotizacion, SolicitudAprobacion, SolicitudComentario,
   Proveedor, RequisitoProveedor, ProveedorDocumento, EvaluacionProveedor,
   LogServidor,
 };

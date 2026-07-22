@@ -1,6 +1,6 @@
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
-const { Area, TipoSolicitud, NivelAprobacion, Solicitud, Cotizacion, SolicitudAprobacion, Usuario, Rol, Proveedor } = require('../../src/models');
+const { Area, TipoSolicitud, NivelAprobacion, Solicitud, Cotizacion, SolicitudAprobacion, Usuario, Rol, Proveedor, SolicitudComentario } = require('../../src/models');
 const seedRolesPermisos = require('../../src/scripts/seedRolesPermisos');
 const seedNivelesAprobacion = require('../../src/scripts/seedNivelesAprobacion');
 
@@ -64,5 +64,26 @@ describe('Solicitud workflow tables', () => {
     await expect(
       Cotizacion.create({ solicitudId: solicitud.id, proveedorId: 999999999, monto: 1000 })
     ).rejects.toThrow(/foreign key constraint/i);
+  });
+});
+
+describe('SolicitudComentario', () => {
+  it('vincula un comentario a una Solicitud y a un Usuario', async () => {
+    const area = await Area.create({ nombre: 'Comentario Modelo', codigo: `COMENTMODELO${Date.now()}` });
+    const tipo = await TipoSolicitud.findOne({ where: { nombre: 'compra' } });
+    const solicitante = await Usuario.unscoped().findOne({ where: { username: 'admin' } });
+
+    const solicitud = await Solicitud.create({
+      codigo: `SOL-COMENT-${Date.now()}`, tipoSolicitudId: tipo.id, areaSolicitanteId: area.id,
+      solicitanteUsuarioId: solicitante.id, descripcion: 'Solicitud para comentar', estado: 'cotizando',
+    });
+
+    const comentario = await SolicitudComentario.create({ solicitudId: solicitud.id, usuarioId: solicitante.id, texto: 'Primer comentario' });
+
+    expect(comentario.solicitudId).toBe(solicitud.id);
+    expect(comentario.usuarioId).toBe(solicitante.id);
+
+    const conSolicitud = await SolicitudComentario.findByPk(comentario.id, { include: Solicitud });
+    expect(conSolicitud.Solicitud.id).toBe(solicitud.id);
   });
 });
