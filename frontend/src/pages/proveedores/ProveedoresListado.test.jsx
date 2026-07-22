@@ -32,7 +32,7 @@ describe('ProveedoresListado', () => {
 
   it('renders the list of proveedores', async () => {
     proveedorService.listar.mockResolvedValue([
-      { id: 1, razonSocial: 'Insumos ABC', documentoIdentificacion: '900123', tipo: 'proveedor', criticidad: 'media', estado: 'activo' },
+      { id: 1, razonSocial: 'Insumos ABC', documentoIdentificacion: '900123', tipo: 'proveedor', criticidad: 'relevante', estado: 'activo' },
     ]);
     renderPagina();
     expect(await screen.findByText('Insumos ABC')).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('ProveedoresListado', () => {
 
   it('navigates to the proveedor detail when a table row is clicked', async () => {
     proveedorService.listar.mockResolvedValue([
-      { id: 1, razonSocial: 'Insumos ABC', documentoIdentificacion: '900123', tipo: 'proveedor', criticidad: 'media', estado: 'activo' },
+      { id: 1, razonSocial: 'Insumos ABC', documentoIdentificacion: '900123', tipo: 'proveedor', criticidad: 'relevante', estado: 'activo' },
     ]);
     renderPagina();
 

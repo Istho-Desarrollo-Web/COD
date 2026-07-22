@@ -1,11 +1,11 @@
 const { RequisitoProveedor, TipoDocumento } = require('../models');
 
 const REQUISITOS = [
-  { nombre: 'Cámara de Comercio', criticidadMinima: 'baja', obligatorio: true, vigenciaAplica: false },
-  { nombre: 'RUT', criticidadMinima: 'baja', obligatorio: true, vigenciaAplica: false },
-  { nombre: 'Certificado SST', criticidadMinima: 'media', obligatorio: true, vigenciaAplica: true },
-  { nombre: 'Certificado SARLAFT', criticidadMinima: 'alta', obligatorio: true, vigenciaAplica: true },
-  { nombre: 'Póliza de responsabilidad civil', criticidadMinima: 'alta', obligatorio: true, vigenciaAplica: true },
+  { nombre: 'Cámara de Comercio', criticidadMinima: 'basico', obligatorio: true, vigenciaAplica: false },
+  { nombre: 'RUT', criticidadMinima: 'basico', obligatorio: true, vigenciaAplica: false },
+  { nombre: 'Certificado SST', criticidadMinima: 'relevante', obligatorio: true, vigenciaAplica: true },
+  { nombre: 'Certificado SARLAFT', criticidadMinima: 'critico', obligatorio: true, vigenciaAplica: true },
+  { nombre: 'Póliza de responsabilidad civil', criticidadMinima: 'critico', obligatorio: true, vigenciaAplica: true },
 ];
 
 module.exports = async function seedRequisitosProveedor() {

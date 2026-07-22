@@ -6,7 +6,7 @@ module.exports = (sequelize) =>
     {
       nombre: { type: DataTypes.STRING(150), allowNull: false, unique: true },
       tipoDocumentoId: { type: DataTypes.INTEGER, allowNull: true },
-      criticidadMinima: { type: DataTypes.ENUM('alta', 'media', 'baja'), allowNull: false },
+      criticidadMinima: { type: DataTypes.ENUM('critico', 'relevante', 'basico'), allowNull: false },
       obligatorio: { type: DataTypes.BOOLEAN, defaultValue: true },
       vigenciaAplica: { type: DataTypes.BOOLEAN, defaultValue: false },
       activo: { type: DataTypes.BOOLEAN, defaultValue: true },

@@ -44,12 +44,21 @@ describe('proveedor.service', () => {
     expect(resultado).toBeNull();
   });
 
-  it('aprobar posts to the aprobar endpoint and returns the result', async () => {
-    mock.onPost('/proveedores/3/aprobar').reply(200, {
+  it('aprobarRegistro posts to the aprobar-registro endpoint and returns the updated proveedor', async () => {
+    mock.onPost('/proveedores/3/aprobar-registro').reply(200, {
+      success: true,
+      data: { id: 3, estado: 'registro_aprobado' },
+    });
+    const resultado = await proveedorService.aprobarRegistro(3);
+    expect(resultado).toEqual({ id: 3, estado: 'registro_aprobado' });
+  });
+
+  it('aprobarRequisitos posts to the aprobar-requisitos endpoint and returns the result', async () => {
+    mock.onPost('/proveedores/3/aprobar-requisitos').reply(200, {
       success: true,
       data: { proveedor: { id: 3, estado: 'activo' }, carpeta: { id: 10, nombre: 'Insumos ABC' }, documentosReflejados: 2 },
     });
-    const resultado = await proveedorService.aprobar(3);
+    const resultado = await proveedorService.aprobarRequisitos(3);
     expect(resultado).toEqual({ proveedor: { id: 3, estado: 'activo' }, carpeta: { id: 10, nombre: 'Insumos ABC' }, documentosReflejados: 2 });
   });
 

@@ -8,7 +8,7 @@ const CATALOGO_MODULOS = {
   area_detalle: ['ver'],
   documentos: ['ver', 'crear', 'editar', 'eliminar', 'aprobar_version', 'exportar'],
   solicitudes: ['ver', 'crear', 'comentar', 'cotizar', 'aprobar', 'confirmar', 'exportar'],
-  proveedores: ['ver', 'crear', 'editar', 'eliminar', 'evaluar', 'exportar'],
+  proveedores: ['ver', 'gestionar', 'aprobar', 'eliminar', 'evaluar', 'exportar'],
   formularios: ['ver', 'crear', 'editar', 'eliminar'],
   reportes: ['ver', 'exportar'],
   usuarios: ['ver', 'crear', 'editar', 'eliminar'],

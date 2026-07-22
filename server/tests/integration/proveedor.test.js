@@ -1,6 +1,6 @@
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
-const { Proveedor, RequisitoProveedor, ProveedorDocumento, EvaluacionProveedor, Area, TipoDocumento, Carpeta } = require('../../src/models');
+const { Proveedor, RequisitoProveedor, ProveedorDocumento, EvaluacionProveedor, Area, TipoDocumento, Carpeta, Usuario } = require('../../src/models');
 const seedRequisitosProveedor = require('../../src/scripts/seedRequisitosProveedor');
 const seedTiposDocumento = require('../../src/scripts/seedTiposDocumento');
 
@@ -14,13 +14,13 @@ afterAll(async () => {
 });
 
 describe('Proveedor domain', () => {
-  it('seedRequisitosProveedor is idempotent and includes SARLAFT as alta criticidad', async () => {
+  it('seedRequisitosProveedor is idempotent and includes SARLAFT as critico criticidad', async () => {
     await seedRequisitosProveedor();
     await seedRequisitosProveedor();
     const count = await RequisitoProveedor.count();
     expect(count).toBe(5);
     const sarlaft = await RequisitoProveedor.findOne({ where: { nombre: 'Certificado SARLAFT' } });
-    expect(sarlaft.criticidadMinima).toBe('alta');
+    expect(sarlaft.criticidadMinima).toBe('critico');
     expect(sarlaft.vigenciaAplica).toBe(true);
   });
 
@@ -44,7 +44,7 @@ describe('Proveedor domain', () => {
     const requisito = await RequisitoProveedor.findOne({ where: { nombre: 'RUT' } });
     const proveedor = await Proveedor.create({
       tipo: 'proveedor', documentoIdentificacion: `900123456-7${Date.now()}`, razonSocial: 'Transportes ABC SAS',
-      criticidad: 'media', categoria: 'transporte', estado: 'activo',
+      criticidad: 'relevante', categoria: 'transporte', estado: 'activo',
     });
     const documento = await ProveedorDocumento.create({
       proveedorId: proveedor.id, requisitoId: requisito.id, s3Key: 'documentos/prov-1/rut.pdf', estado: 'vigente',
@@ -92,5 +92,29 @@ describe('Columnas de aprobación (areaSolicitanteId, tipoDocumentoId, proveedor
 
     expect(carpetaNormal.proveedorId).toBeNull();
     expect(carpetaDeProveedor.proveedorId).toBe(proveedor.id);
+  });
+});
+
+describe('Cuenta externa Colaborador<->Proveedor (usuario_proveedores)', () => {
+  it('links Usuario <-> Proveedor via usuario_proveedores, en ambos sentidos', async () => {
+    const area = await Area.create({ nombre: 'Cuenta Externa', codigo: `CTAEXT${Date.now()}` });
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `960${Date.now()}`, razonSocial: 'Externo SAS', areaSolicitanteId: area.id,
+    });
+    const username = `colaborador_externo_${Date.now()}`;
+    const usuario = await Usuario.create({
+      username, email: `${username}@istho.com.co`, passwordHash: 'hash-de-prueba',
+      nombre: 'Colaborador', apellido: 'Externo',
+    });
+
+    await usuario.addProveedoresRepresentados(proveedor);
+
+    const usuarioConProveedores = await Usuario.findByPk(usuario.id, { include: [{ association: 'proveedoresRepresentados' }] });
+    expect(usuarioConProveedores.proveedoresRepresentados).toHaveLength(1);
+    expect(usuarioConProveedores.proveedoresRepresentados[0].id).toBe(proveedor.id);
+
+    const proveedorConColaboradores = await Proveedor.findByPk(proveedor.id, { include: [{ association: 'colaboradoresExternos' }] });
+    expect(proveedorConColaboradores.colaboradoresExternos).toHaveLength(1);
+    expect(proveedorConColaboradores.colaboradoresExternos[0].id).toBe(usuario.id);
   });
 });

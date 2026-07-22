@@ -43,7 +43,7 @@ describe('Solicitud workflow tables', () => {
     const solicitante = await Usuario.unscoped().findOne({ where: { username: 'admin' } });
     const proveedor = await Proveedor.create({
       tipo: 'proveedor', documentoIdentificacion: `900999999-1${Date.now()}`, razonSocial: 'Insumos XYZ SAS',
-      criticidad: 'media', estado: 'activo',
+      criticidad: 'relevante', estado: 'activo',
     });
 
     const solicitud = await Solicitud.create({

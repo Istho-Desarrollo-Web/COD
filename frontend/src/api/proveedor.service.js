@@ -25,8 +25,13 @@ async function eliminar(id) {
   return response.data;
 }
 
-async function aprobar(id) {
-  const response = await apiClient.post(`/proveedores/${id}/aprobar`);
+async function aprobarRegistro(id) {
+  const response = await apiClient.post(`/proveedores/${id}/aprobar-registro`);
+  return response.data;
+}
+
+async function aprobarRequisitos(id) {
+  const response = await apiClient.post(`/proveedores/${id}/aprobar-requisitos`);
   return response.data;
 }
 
@@ -35,4 +40,4 @@ async function rechazar(id, motivo) {
   return response.data;
 }
 
-export default { listar, obtener, crear, editar, eliminar, aprobar, rechazar };
+export default { listar, obtener, crear, editar, eliminar, aprobarRegistro, aprobarRequisitos, rechazar };

@@ -14,7 +14,7 @@ import StatusChip from '../../components/common/StatusChip/StatusChip';
 import { validarArchivo, TIPOS_PERMITIDOS } from '../../utils/validarArchivo';
 
 const TIPOS_PERMITIDOS_ACCEPT = [...TIPOS_PERMITIDOS].join(',');
-const ORDEN_CRITICIDAD = { baja: 0, media: 1, alta: 2 };
+const ORDEN_CRITICIDAD = { basico: 0, relevante: 1, critico: 2 };
 
 function requisitoAplica(criticidadProveedor, criticidadMinimaRequisito) {
   return ORDEN_CRITICIDAD[criticidadProveedor] >= ORDEN_CRITICIDAD[criticidadMinimaRequisito];
@@ -122,14 +122,25 @@ export default function ProveedorDetalle() {
     }
   }
 
-  async function onAprobar() {
-    if (!window.confirm('¿Aprobar este proveedor? Se creará su carpeta en el módulo de Documentos con los documentos ya subidos al expediente.')) return;
+  async function onAprobarRegistro() {
+    if (!window.confirm('¿Aprobar el registro de este proveedor? Podrás continuar luego con la aprobación de sus requisitos documentales.')) return;
     try {
-      const resultado = await proveedorService.aprobar(id);
+      await proveedorService.aprobarRegistro(id);
+      enqueueSnackbar('Registro del proveedor aprobado', { variant: 'success' });
+      await cargarProveedor();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo aprobar el registro del proveedor', { variant: 'error' });
+    }
+  }
+
+  async function onAprobarRequisitos() {
+    if (!window.confirm('¿Aprobar los requisitos documentales de este proveedor? Se creará su carpeta en el módulo de Documentos con los documentos ya subidos al expediente.')) return;
+    try {
+      const resultado = await proveedorService.aprobarRequisitos(id);
       enqueueSnackbar(`Proveedor aprobado. Se reflejaron ${resultado.documentosReflejados} documento(s) en su carpeta.`, { variant: 'success' });
       await cargarProveedor();
     } catch (error) {
-      enqueueSnackbar(error?.message || 'No se pudo aprobar el proveedor', { variant: 'error' });
+      enqueueSnackbar(error?.message || 'No se pudo aprobar los requisitos del proveedor', { variant: 'error' });
     }
   }
 
@@ -259,7 +270,7 @@ export default function ProveedorDetalle() {
         <div className="p-6">
           {tabActiva === 'detalle' && (
             <form className="space-y-4">
-              <Input label="Razón social *" error={errors.razonSocial?.message} {...register('razonSocial', { required: 'La razón social es obligatoria' })} disabled={!tienePermiso('proveedores', 'editar')} />
+              <Input label="Razón social *" error={errors.razonSocial?.message} {...register('razonSocial', { required: 'La razón social es obligatoria' })} disabled={!tienePermiso('proveedores', 'gestionar')} />
 
               <div>
                 <label htmlFor="detalle-criticidad" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
@@ -267,30 +278,40 @@ export default function ProveedorDetalle() {
                 </label>
                 <select
                   id="detalle-criticidad"
-                  disabled={!tienePermiso('proveedores', 'editar')}
+                  disabled={!tienePermiso('proveedores', 'gestionar')}
                   className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100 disabled:bg-slate-50 dark:disabled:bg-centhrix-card"
                   {...register('criticidad')}
                 >
-                  <option value="alta">Alta</option>
-                  <option value="media">Media</option>
-                  <option value="baja">Baja</option>
+                  <option value="critico">Crítico</option>
+                  <option value="relevante">Relevante</option>
+                  <option value="basico">Básico</option>
                 </select>
               </div>
 
-              <Input label="Categoría" {...register('categoria')} disabled={!tienePermiso('proveedores', 'editar')} />
+              <Input label="Categoría" {...register('categoria')} disabled={!tienePermiso('proveedores', 'gestionar')} />
 
               <div className="flex items-center gap-3 pt-2">
-                {proveedor.estado === 'en_evaluacion' && tienePermiso('proveedores', 'editar') && (
+                {proveedor.estado === 'en_evaluacion' && tienePermiso('proveedores', 'aprobar') && (
                   <>
-                    <Button variant="success" icon={CheckCircle} onClick={onAprobar}>
-                      Aprobar
+                    <Button variant="success" icon={CheckCircle} onClick={onAprobarRegistro}>
+                      Aprobar registro
                     </Button>
                     <Button variant="danger" icon={XCircle} onClick={onRechazar}>
                       Rechazar
                     </Button>
                   </>
                 )}
-                {tienePermiso('proveedores', 'editar') && <Button onClick={handleSubmit(onGuardar)}>Guardar cambios</Button>}
+                {proveedor.estado === 'registro_aprobado' && tienePermiso('proveedores', 'aprobar') && (
+                  <>
+                    <Button variant="success" icon={CheckCircle} onClick={onAprobarRequisitos}>
+                      Aprobar requisitos
+                    </Button>
+                    <Button variant="danger" icon={XCircle} onClick={onRechazar}>
+                      Rechazar
+                    </Button>
+                  </>
+                )}
+                {tienePermiso('proveedores', 'gestionar') && <Button onClick={handleSubmit(onGuardar)}>Guardar cambios</Button>}
                 {tienePermiso('proveedores', 'eliminar') && (
                   <Button variant="danger" onClick={onEliminar}>
                     Dar de baja
@@ -335,7 +356,7 @@ export default function ProveedorDetalle() {
                         <Button variant="outline" size="sm" icon={Download} onClick={() => onDescargar(documento.id)}>
                           Descargar
                         </Button>
-                        {tienePermiso('proveedores', 'editar') && (
+                        {tienePermiso('proveedores', 'gestionar') && (
                           <Button variant="outline" size="sm" icon={Trash2} onClick={() => onEliminarDocumento(documento.id)}>
                             Eliminar
                           </Button>
@@ -346,7 +367,7 @@ export default function ProveedorDetalle() {
                 </ul>
               </div>
 
-              {tienePermiso('proveedores', 'editar') && (
+              {tienePermiso('proveedores', 'gestionar') && (
                 <form className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
                   <div>
                     <label htmlFor="subida-requisitoId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">

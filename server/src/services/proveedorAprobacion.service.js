@@ -4,6 +4,27 @@ const { calcularEstadoDocumento } = require('./documento.service');
 const { guardarArchivo, obtenerRutaAbsoluta } = require('./almacenamiento.service');
 const { recalcularSaludArea } = require('./area.service');
 
+const ORDEN_CRITICIDAD = { basico: 0, relevante: 1, critico: 2 };
+
+function requisitoAplica(criticidadProveedor, criticidadMinimaRequisito) {
+  return ORDEN_CRITICIDAD[criticidadProveedor] >= ORDEN_CRITICIDAD[criticidadMinimaRequisito];
+}
+
+async function requisitosFaltantes(proveedor) {
+  const { RequisitoProveedor, ProveedorDocumento } = require('../models');
+
+  const requisitos = await RequisitoProveedor.findAll({ where: { activo: true, obligatorio: true } });
+  const aplicables = requisitos.filter((requisito) => requisitoAplica(proveedor.criticidad, requisito.criticidadMinima));
+  if (aplicables.length === 0) return [];
+
+  const documentos = await ProveedorDocumento.findAll({ where: { proveedorId: proveedor.id } });
+  const requisitosIdCubiertos = new Set(
+    documentos.filter((documento) => documento.requisitoId && documento.estado !== 'vencido').map((documento) => documento.requisitoId)
+  );
+
+  return aplicables.filter((requisito) => !requisitosIdCubiertos.has(requisito.id)).map((requisito) => requisito.nombre);
+}
+
 async function aprobarProveedor(proveedor) {
   const { sequelize, Carpeta, Documento, ProveedorDocumento, RequisitoProveedor, TipoDocumento } = require('../models');
   const areaId = proveedor.areaSolicitanteId;
@@ -74,4 +95,4 @@ async function aprobarProveedor(proveedor) {
   return resultado;
 }
 
-module.exports = { aprobarProveedor };
+module.exports = { aprobarProveedor, requisitosFaltantes };

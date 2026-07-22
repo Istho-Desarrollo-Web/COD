@@ -13,12 +13,12 @@ vi.mock('../../api/requisitoProveedor.service');
 vi.mock('../../api/proveedorDocumento.service');
 vi.mock('../../context/AuthContext');
 
-const PROVEEDOR = { id: 1, razonSocial: 'Insumos ABC', documentoIdentificacion: '900123456', criticidad: 'media', categoria: 'insumos', estado: 'activo' };
+const PROVEEDOR = { id: 1, razonSocial: 'Insumos ABC', documentoIdentificacion: '900123456', criticidad: 'relevante', categoria: 'insumos', estado: 'activo' };
 
 const REQUISITOS = [
-  { id: 1, nombre: 'RUT', criticidadMinima: 'baja' },
-  { id: 2, nombre: 'Certificado SST', criticidadMinima: 'media' },
-  { id: 3, nombre: 'Certificado SARLAFT', criticidadMinima: 'alta' },
+  { id: 1, nombre: 'RUT', criticidadMinima: 'basico' },
+  { id: 2, nombre: 'Certificado SST', criticidadMinima: 'relevante' },
+  { id: 3, nombre: 'Certificado SARLAFT', criticidadMinima: 'critico' },
 ];
 
 function renderPagina(ruta = '/proveedores/1') {
@@ -151,16 +151,28 @@ describe('ProveedorDetalle', () => {
     expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
   });
 
-  it('shows Aprobar and Rechazar buttons only while en_evaluacion, and approves successfully', async () => {
+  it('shows Aprobar registro and Rechazar buttons only while en_evaluacion, and aprueba el registro exitosamente', async () => {
     proveedorService.obtener.mockResolvedValue({ ...PROVEEDOR, estado: 'en_evaluacion' });
-    proveedorService.aprobar.mockResolvedValue({ proveedor: { ...PROVEEDOR, estado: 'activo' }, carpeta: { id: 9, nombre: 'Insumos ABC' }, documentosReflejados: 2 });
+    proveedorService.aprobarRegistro.mockResolvedValue({ ...PROVEEDOR, estado: 'registro_aprobado' });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPagina();
     await screen.findByText('Insumos ABC');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Aprobar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar registro' }));
 
-    await waitFor(() => expect(proveedorService.aprobar).toHaveBeenCalledWith('1'));
+    await waitFor(() => expect(proveedorService.aprobarRegistro).toHaveBeenCalledWith('1'));
+  });
+
+  it('shows Aprobar requisitos and Rechazar buttons while registro_aprobado, and aprueba los requisitos exitosamente', async () => {
+    proveedorService.obtener.mockResolvedValue({ ...PROVEEDOR, estado: 'registro_aprobado' });
+    proveedorService.aprobarRequisitos.mockResolvedValue({ proveedor: { ...PROVEEDOR, estado: 'activo' }, carpeta: { id: 9, nombre: 'Insumos ABC' }, documentosReflejados: 2 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar requisitos' }));
+
+    await waitFor(() => expect(proveedorService.aprobarRequisitos).toHaveBeenCalledWith('1'));
   });
 
   it('hides Aprobar and Rechazar when estado is not en_evaluacion', async () => {
@@ -168,7 +180,8 @@ describe('ProveedorDetalle', () => {
     renderPagina();
     await screen.findByText('Insumos ABC');
 
-    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aprobar registro' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aprobar requisitos' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
   });
 
@@ -190,7 +203,8 @@ describe('ProveedorDetalle', () => {
     renderPagina();
     await screen.findByText('Insumos ABC');
 
-    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aprobar registro' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aprobar requisitos' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
   });
 });

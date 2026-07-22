@@ -6,14 +6,17 @@ const { createMigrator } = require('../../src/config/migrator');
 const seedRolesPermisos = require('../../src/scripts/seedRolesPermisos');
 const seedRequisitosProveedor = require('../../src/scripts/seedRequisitosProveedor');
 const seedTiposDocumento = require('../../src/scripts/seedTiposDocumento');
-const { Rol, Usuario, Area } = require('../../src/models');
+const { Rol, Usuario, Area, RequisitoProveedor } = require('../../src/models');
 const { invalidarCachePermisos } = require('../../src/middlewares/roles');
 const { app } = require('../../server');
 
 let token;
-let financieraToken;
+let gestorComprasToken;
 let solicitanteToken;
+let aprobadorAreaToken;
 let area;
+let requisitoCamaraComercio;
+let requisitoRut;
 
 beforeAll(async () => {
   await sequelize.authenticate();
@@ -30,35 +33,53 @@ beforeAll(async () => {
     .send({ username: 'admin', password: process.env.SEED_PASSWORD_ADMIN || 'CambiarAhora123!' });
   token = res.body.data.token;
 
-  const financieraRol = await Rol.findOne({ where: { nombre: 'financiera' } });
-  const financieraUsername = `financiera_prov_${Date.now()}`;
-  await Usuario.create({
-    username: financieraUsername,
-    email: `${financieraUsername}@istho.com.co`,
-    passwordHash: await bcrypt.hash('ClaveFinanciera123!', 10),
-    nombre: 'Financiera',
-    apellido: 'Prueba',
-    rolId: financieraRol.id,
+  const gestorComprasRol = await Rol.findOne({ where: { nombre: 'gestor_compras' } });
+  const gestorComprasUsername = `gestor_compras_prov_${Date.now()}`;
+  const gestorComprasUsuario = await Usuario.create({
+    username: gestorComprasUsername,
+    email: `${gestorComprasUsername}@istho.com.co`,
+    passwordHash: await bcrypt.hash('ClaveGestorCompras123!', 10),
+    nombre: 'Gestor',
+    apellido: 'Compras',
   });
-  const financieraLogin = await request(app)
+  await gestorComprasUsuario.setRoles([gestorComprasRol.id]);
+  const gestorComprasLogin = await request(app)
     .post('/api/v1/auth/login')
-    .send({ username: financieraUsername, password: 'ClaveFinanciera123!' });
-  financieraToken = financieraLogin.body.data.token;
+    .send({ username: gestorComprasUsername, password: 'ClaveGestorCompras123!' });
+  gestorComprasToken = gestorComprasLogin.body.data.token;
 
   const solicitanteRol = await Rol.findOne({ where: { nombre: 'solicitante' } });
   const solicitanteUsername = `solicitante_prov_${Date.now()}`;
-  await Usuario.create({
+  const solicitanteUsuario = await Usuario.create({
     username: solicitanteUsername,
     email: `${solicitanteUsername}@istho.com.co`,
     passwordHash: await bcrypt.hash('ClaveSolicitante123!', 10),
     nombre: 'Solicitante',
     apellido: 'Prueba',
-    rolId: solicitanteRol.id,
   });
+  await solicitanteUsuario.setRoles([solicitanteRol.id]);
   const solicitanteLogin = await request(app)
     .post('/api/v1/auth/login')
     .send({ username: solicitanteUsername, password: 'ClaveSolicitante123!' });
   solicitanteToken = solicitanteLogin.body.data.token;
+
+  const aprobadorAreaRol = await Rol.findOne({ where: { nombre: 'aprobador_area' } });
+  const aprobadorAreaUsername = `aprobador_area_prov_${Date.now()}`;
+  const aprobadorAreaUsuario = await Usuario.create({
+    username: aprobadorAreaUsername,
+    email: `${aprobadorAreaUsername}@istho.com.co`,
+    passwordHash: await bcrypt.hash('ClaveAprobadorArea123!', 10),
+    nombre: 'Aprobador',
+    apellido: 'Area',
+  });
+  await aprobadorAreaUsuario.setRoles([aprobadorAreaRol.id]);
+  const aprobadorAreaLogin = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ username: aprobadorAreaUsername, password: 'ClaveAprobadorArea123!' });
+  aprobadorAreaToken = aprobadorAreaLogin.body.data.token;
+
+  requisitoCamaraComercio = await RequisitoProveedor.findOne({ where: { nombre: 'Cámara de Comercio' } });
+  requisitoRut = await RequisitoProveedor.findOne({ where: { nombre: 'RUT' } });
 });
 
 afterAll(async () => {
@@ -71,13 +92,23 @@ describe('Proveedores API', () => {
     const createRes = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${token}`)
-      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Insumos ABC SAS', criticidad: 'media', areaSolicitanteId: area.id });
+      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Insumos ABC SAS', criticidad: 'relevante', areaSolicitanteId: area.id });
     expect(createRes.status).toBe(201);
     expect(createRes.body.data.estado).toBe('en_evaluacion');
 
     const listRes = await request(app).get('/api/v1/proveedores').set('Authorization', `Bearer ${token}`);
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.some((p) => p.documentoIdentificacion === documentoIdentificacion)).toBe(true);
+  });
+
+  it('defaults criticidad to relevante when not provided (regression: stale "media" default corrupted the ENUM)', async () => {
+    const documentoIdentificacion = `909${Date.now()}`;
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion, razonSocial: 'Sin Criticidad SAS', areaSolicitanteId: area.id });
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.data.criticidad).toBe('relevante');
   });
 
   it('returns 409 (not a hang) when documentoIdentificacion already exists', async () => {
@@ -103,10 +134,10 @@ describe('Proveedores API', () => {
     expect(res.status).toBe(400);
   });
 
-  it('allows financiera to create a proveedor', async () => {
+  it('allows gestor_compras to create a proveedor', async () => {
     const res = await request(app)
       .post('/api/v1/proveedores')
-      .set('Authorization', `Bearer ${financieraToken}`)
+      .set('Authorization', `Bearer ${gestorComprasToken}`)
       .send({ tipo: 'contratista', documentoIdentificacion: `903${Date.now()}`, razonSocial: 'Contratista Financiera SAS', areaSolicitanteId: area.id });
     expect(res.status).toBe(201);
   });
@@ -171,42 +202,81 @@ describe('Requisitos de Proveedor API', () => {
 });
 
 describe('Aprobar y rechazar proveedor', () => {
-  it('aprueba un proveedor en_evaluacion, crea su carpeta y refleja los documentos del expediente', async () => {
+  it('aprueba el registro y luego los requisitos de un proveedor en_evaluacion, crea su carpeta y refleja los documentos del expediente', async () => {
     const createRes = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${token}`)
-      .send({ tipo: 'proveedor', documentoIdentificacion: `940${Date.now()}`, razonSocial: 'Aprobación Ruta SAS', areaSolicitanteId: area.id });
+      .send({ tipo: 'proveedor', documentoIdentificacion: `940${Date.now()}`, razonSocial: 'Aprobación Ruta SAS', criticidad: 'basico', areaSolicitanteId: area.id });
     const id = createRes.body.data.id;
 
     await request(app)
       .post(`/api/v1/proveedores/${id}/documentos`)
       .set('Authorization', `Bearer ${token}`)
+      .field('requisitoId', String(requisitoCamaraComercio.id))
+      .attach('archivo', path.join(__dirname, '../fixtures/documento-prueba.pdf'));
+    await request(app)
+      .post(`/api/v1/proveedores/${id}/documentos`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('requisitoId', String(requisitoRut.id))
       .attach('archivo', path.join(__dirname, '../fixtures/documento-prueba.pdf'));
 
-    const aprobarRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${token}`);
-    expect(aprobarRes.status).toBe(200);
-    expect(aprobarRes.body.data.proveedor.estado).toBe('activo');
-    expect(aprobarRes.body.data.documentosReflejados).toBe(1);
-    expect(aprobarRes.body.data.carpeta.nombre).toBe('Aprobación Ruta SAS');
+    const registroRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${token}`);
+    expect(registroRes.status).toBe(200);
+    expect(registroRes.body.data.estado).toBe('registro_aprobado');
+
+    const requisitosRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar-requisitos`).set('Authorization', `Bearer ${token}`);
+    expect(requisitosRes.status).toBe(200);
+    expect(requisitosRes.body.data.proveedor.estado).toBe('activo');
+    expect(requisitosRes.body.data.documentosReflejados).toBe(2);
+    expect(requisitosRes.body.data.carpeta.nombre).toBe('Aprobación Ruta SAS');
   });
 
-  it('returns 400 when approving a proveedor that is not en_evaluacion', async () => {
+  it('returns 400 when aprobando requisitos con checklist obligatorio incompleto', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `949${Date.now()}`, razonSocial: 'Checklist Incompleto SAS', criticidad: 'basico', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).post(`/api/v1/proveedores/${id}/aprobar-requisitos`).set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toContain('Cámara de Comercio');
+    expect(res.body.message).toContain('RUT');
+
+    const obtenerRes = await request(app).get(`/api/v1/proveedores/${id}`).set('Authorization', `Bearer ${token}`);
+    expect(obtenerRes.body.data.estado).toBe('registro_aprobado');
+  });
+
+  it('returns 400 when aprobando registro de un proveedor que no está en_evaluacion', async () => {
     const createRes = await request(app)
       .post('/api/v1/proveedores')
       .set('Authorization', `Bearer ${token}`)
       .send({ tipo: 'proveedor', documentoIdentificacion: `941${Date.now()}`, razonSocial: 'Doble Aprobación SAS', areaSolicitanteId: area.id });
     const id = createRes.body.data.id;
 
-    await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${token}`);
-    const segundaRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${token}`);
+    await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${token}`);
+    const segundaRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${token}`);
     expect(segundaRes.status).toBe(400);
+  });
+
+  it('returns 400 when aprobando requisitos de un proveedor cuyo registro no ha sido aprobado', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `950${Date.now()}`, razonSocial: 'Sin Registro Aprobado SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    const res = await request(app).post(`/api/v1/proveedores/${id}/aprobar-requisitos`).set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
   });
 
   it('returns 400 when approving a proveedor without areaSolicitanteId', async () => {
     const proveedorSinArea = await require('../../src/models').Proveedor.create({
       tipo: 'proveedor', documentoIdentificacion: `942${Date.now()}`, razonSocial: 'Sin Área Aprobación SAS',
     });
-    const res = await request(app).post(`/api/v1/proveedores/${proveedorSinArea.id}/aprobar`).set('Authorization', `Bearer ${token}`);
+    const res = await request(app).post(`/api/v1/proveedores/${proveedorSinArea.id}/aprobar-registro`).set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(400);
   });
 
@@ -221,6 +291,22 @@ describe('Aprobar y rechazar proveedor', () => {
       .post(`/api/v1/proveedores/${id}/rechazar`)
       .set('Authorization', `Bearer ${token}`)
       .send({ motivo: 'Documentación incompleta' });
+    expect(rechazarRes.status).toBe(200);
+    expect(rechazarRes.body.data.estado).toBe('inactivo');
+  });
+
+  it('rechaza un proveedor con registro_aprobado con motivo', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `951${Date.now()}`, razonSocial: 'Rechazo Post Registro SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+    await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${token}`);
+
+    const rechazarRes = await request(app)
+      .post(`/api/v1/proveedores/${id}/rechazar`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ motivo: 'No cumple requisitos' });
     expect(rechazarRes.status).toBe(200);
     expect(rechazarRes.body.data.estado).toBe('inactivo');
   });
@@ -243,7 +329,66 @@ describe('Aprobar y rechazar proveedor', () => {
       .send({ tipo: 'proveedor', documentoIdentificacion: `945${Date.now()}`, razonSocial: 'No Autorizado Aprobar SAS', areaSolicitanteId: area.id });
     const id = createRes.body.data.id;
 
-    const res = await request(app).post(`/api/v1/proveedores/${id}/aprobar`).set('Authorization', `Bearer ${solicitanteToken}`);
+    const res = await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${solicitanteToken}`);
     expect(res.status).toBe(403);
+  });
+
+  it('returns 403 when gestor_compras (has gestionar, not aprobar) tries to approve either gate', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `946${Date.now()}`, razonSocial: 'Sin Aprobar Gestor SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    const registroRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${gestorComprasToken}`);
+    expect(registroRes.status).toBe(403);
+
+    await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${token}`);
+    const requisitosRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar-requisitos`).set('Authorization', `Bearer ${gestorComprasToken}`);
+    expect(requisitosRes.status).toBe(403);
+  });
+
+  it('allows aprobador_area to approve both gates of a proveedor', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `947${Date.now()}`, razonSocial: 'Aprobador Area SAS', criticidad: 'basico', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    await request(app)
+      .post(`/api/v1/proveedores/${id}/documentos`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('requisitoId', String(requisitoCamaraComercio.id))
+      .attach('archivo', path.join(__dirname, '../fixtures/documento-prueba.pdf'));
+    await request(app)
+      .post(`/api/v1/proveedores/${id}/documentos`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('requisitoId', String(requisitoRut.id))
+      .attach('archivo', path.join(__dirname, '../fixtures/documento-prueba.pdf'));
+
+    const registroRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar-registro`).set('Authorization', `Bearer ${aprobadorAreaToken}`);
+    expect(registroRes.status).toBe(200);
+
+    const requisitosRes = await request(app).post(`/api/v1/proveedores/${id}/aprobar-requisitos`).set('Authorization', `Bearer ${aprobadorAreaToken}`);
+    expect(requisitosRes.status).toBe(200);
+    expect(requisitosRes.body.data.proveedor.estado).toBe('activo');
+  });
+
+  it('ignores estado sent via PUT /:id, even from gestor_compras — cannot bypass proveedores:aprobar', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/proveedores')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ tipo: 'proveedor', documentoIdentificacion: `948${Date.now()}`, razonSocial: 'Sin Bypass SAS', areaSolicitanteId: area.id });
+    const id = createRes.body.data.id;
+
+    const editRes = await request(app)
+      .put(`/api/v1/proveedores/${id}`)
+      .set('Authorization', `Bearer ${gestorComprasToken}`)
+      .send({ estado: 'activo' });
+    expect(editRes.status).toBe(200);
+    expect(editRes.body.data.estado).toBe('en_evaluacion');
+
+    const obtenerRes = await request(app).get(`/api/v1/proveedores/${id}`).set('Authorization', `Bearer ${token}`);
+    expect(obtenerRes.body.data.estado).toBe('en_evaluacion');
   });
 });

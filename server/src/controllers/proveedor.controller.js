@@ -1,6 +1,6 @@
 const { Proveedor, Auditoria } = require('../models');
 const { success, created, notFound, badRequest, serverError } = require('../utils/responses');
-const { aprobarProveedor } = require('../services/proveedorAprobacion.service');
+const { aprobarProveedor, requisitosFaltantes } = require('../services/proveedorAprobacion.service');
 
 async function listar(req, res) {
   const { estado, tipo, criticidad } = req.query;
@@ -32,7 +32,7 @@ async function crear(req, res) {
   // mecanismo que usa Area.codigo, sin necesidad de un pre-chequeo manual aquí.
   const proveedor = await Proveedor.create({
     tipo, documentoIdentificacion, razonSocial, areaSolicitanteId,
-    criticidad: criticidad || 'media',
+    criticidad: criticidad || 'relevante',
     categoria: categoria || null,
     responsableUsuarioId: responsableUsuarioId || null,
   });
@@ -49,7 +49,14 @@ async function editar(req, res) {
   const proveedor = await Proveedor.findByPk(req.params.id);
   if (!proveedor) return notFound(res, 'Proveedor no encontrado');
 
-  const { razonSocial, criticidad, categoria, responsableUsuarioId, estado, areaSolicitanteId } = req.body;
+  // `estado` NO se acepta aquí a propósito: es la única forma de que
+  // proveedores:gestionar y proveedores:aprobar sean permisos realmente
+  // separados. Toda transición de estado pasa por /aprobar-registro,
+  // /aprobar-requisitos o /rechazar (gateados por `aprobar`) o por
+  // eliminar() (gateado por `eliminar`) — de lo contrario, un rol con solo
+  // `gestionar` podría fijar estado:'activo' aquí y lograr el mismo efecto
+  // que aprobar sin tener ese permiso.
+  const { razonSocial, criticidad, categoria, responsableUsuarioId, areaSolicitanteId } = req.body;
 
   const datosAnteriores = proveedor.toJSON();
   const cambios = {};
@@ -57,7 +64,6 @@ async function editar(req, res) {
   if (criticidad !== undefined) cambios.criticidad = criticidad;
   if (categoria !== undefined) cambios.categoria = categoria;
   if (responsableUsuarioId !== undefined) cambios.responsableUsuarioId = responsableUsuarioId;
-  if (estado !== undefined) cambios.estado = estado;
   if (areaSolicitanteId !== undefined) cambios.areaSolicitanteId = areaSolicitanteId;
 
   await proveedor.update(cambios);
@@ -84,11 +90,35 @@ async function eliminar(req, res) {
   return success(res, null, 'Proveedor dado de baja');
 }
 
-async function aprobar(req, res) {
+async function aprobarRegistro(req, res) {
   const proveedor = await Proveedor.findByPk(req.params.id);
   if (!proveedor) return notFound(res, 'Proveedor no encontrado');
   if (proveedor.estado !== 'en_evaluacion') return badRequest(res, 'El proveedor ya fue aprobado o rechazado');
   if (!proveedor.areaSolicitanteId) return badRequest(res, 'Completa el área solicitante antes de aprobar');
+
+  const datosAnteriores = proveedor.toJSON();
+  await proveedor.update({ estado: 'registro_aprobado' });
+
+  await Auditoria.registrar({
+    tabla: 'proveedores', registroId: proveedor.id, accion: 'actualizar',
+    usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto,
+    descripcion: 'Registro de proveedor aprobado', datosAnteriores, datosNuevos: proveedor.toJSON(),
+  });
+
+  return success(res, proveedor);
+}
+
+async function aprobarRequisitos(req, res) {
+  const proveedor = await Proveedor.findByPk(req.params.id);
+  if (!proveedor) return notFound(res, 'Proveedor no encontrado');
+  if (proveedor.estado !== 'registro_aprobado') {
+    return badRequest(res, 'El registro del proveedor debe aprobarse antes de aprobar sus requisitos documentales');
+  }
+
+  const faltantes = await requisitosFaltantes(proveedor);
+  if (faltantes.length > 0) {
+    return badRequest(res, `Faltan requisitos obligatorios: ${faltantes.join(', ')}`);
+  }
 
   let resultado;
   try {
@@ -102,7 +132,7 @@ async function aprobar(req, res) {
   await Auditoria.registrar({
     tabla: 'proveedores', registroId: proveedor.id, accion: 'actualizar',
     usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto,
-    descripcion: `Proveedor aprobado — ${resultado.documentosReflejados} documento(s) reflejado(s) en la carpeta`,
+    descripcion: `Requisitos de proveedor aprobados — ${resultado.documentosReflejados} documento(s) reflejado(s) en la carpeta`,
     datosNuevos: proveedorActualizado.toJSON(),
   });
 
@@ -112,7 +142,7 @@ async function aprobar(req, res) {
 async function rechazar(req, res) {
   const proveedor = await Proveedor.findByPk(req.params.id);
   if (!proveedor) return notFound(res, 'Proveedor no encontrado');
-  if (proveedor.estado !== 'en_evaluacion') return badRequest(res, 'El proveedor ya fue aprobado o rechazado');
+  if (!['en_evaluacion', 'registro_aprobado'].includes(proveedor.estado)) return badRequest(res, 'El proveedor ya fue aprobado o rechazado');
 
   const { motivo } = req.body;
   if (!motivo) return badRequest(res, 'El motivo del rechazo es obligatorio');
@@ -129,4 +159,4 @@ async function rechazar(req, res) {
   return success(res, proveedor, 'Proveedor rechazado');
 }
 
-module.exports = { listar, obtener, crear, editar, eliminar, aprobar, rechazar };
+module.exports = { listar, obtener, crear, editar, eliminar, aprobarRegistro, aprobarRequisitos, rechazar };

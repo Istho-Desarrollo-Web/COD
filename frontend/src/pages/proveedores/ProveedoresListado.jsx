@@ -27,9 +27,9 @@ const OPCIONES_TIPO = [
   { value: 'contratista', label: 'Contratista' },
 ];
 const OPCIONES_CRITICIDAD = [
-  { value: 'alta', label: 'Alta' },
-  { value: 'media', label: 'Media' },
-  { value: 'baja', label: 'Baja' },
+  { value: 'critico', label: 'Crítico' },
+  { value: 'relevante', label: 'Relevante' },
+  { value: 'basico', label: 'Básico' },
 ];
 
 function ProveedorCard({ proveedor, onClick }) {
@@ -148,7 +148,7 @@ export default function ProveedoresListado() {
         <h2 className="text-xl font-display font-semibold text-slate-800 dark:text-slate-100">Proveedores y contratistas</h2>
         <div className="flex items-center gap-3">
           {!esVistaMovil && <ViewToggle modo={modo} onChange={setModo} />}
-          {tienePermiso('proveedores', 'crear') && (
+          {tienePermiso('proveedores', 'gestionar') && (
             <Button icon={Plus} onClick={() => setModalAbierto(true)}>
               Crear proveedor
             </Button>
@@ -223,13 +223,13 @@ export default function ProveedoresListado() {
             </label>
             <select
               id="crear-criticidad"
-              defaultValue="media"
+              defaultValue="relevante"
               className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
               {...register('criticidad')}
             >
-              <option value="alta">Alta</option>
-              <option value="media">Media</option>
-              <option value="baja">Baja</option>
+              <option value="critico">Crítico</option>
+              <option value="relevante">Relevante</option>
+              <option value="basico">Básico</option>
             </select>
           </div>
 

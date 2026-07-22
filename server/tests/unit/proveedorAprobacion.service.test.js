@@ -84,7 +84,7 @@ describe('proveedorAprobacion.service', () => {
   it('usa el nombre y tipo genéricos cuando el requisito asociado no tiene tipoDocumentoId', async () => {
     const requisitoSinTipo = await RequisitoProveedor.create({
       nombre: `Requisito Sin Tipo ${Date.now()}`,
-      criticidadMinima: 'baja',
+      criticidadMinima: 'basico',
     });
 
     try {
