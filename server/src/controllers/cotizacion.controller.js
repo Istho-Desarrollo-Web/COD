@@ -1,24 +1,20 @@
 const { Solicitud, Cotizacion, Proveedor, Auditoria, sequelize } = require('../models');
 const { success, created, notFound, badRequest, forbidden } = require('../utils/responses');
 const { guardarArchivo } = require('../services/almacenamiento.service');
+const { tieneVisibilidadAmplia } = require('../utils/visibilidadSolicitud');
 
-// Duplicado intencionalmente de solicitud.controller.js — los controllers de
-// este codebase no se importan entre sí y no hay un helper compartido para
-// esto. `listar()` está gateado por `solicitudes:ver`, que también tienen
+// `listar()` está gateado por `solicitudes:ver`, que también tienen
 // `solicitante`/`gestor_documental` (visibilidad restringida a lo propio);
 // sin este chequeo, cualquier solicitante podría leer montos/proveedor de
 // cotizaciones de solicitudes ajenas recorriendo ids secuenciales (IDOR).
 // `crear`/`seleccionar` no lo necesitan: están gateados por
 // `solicitudes:cotizar`, que en el seed actual solo tiene `gestor_compras`
 // (rol de visibilidad amplia).
-const ROLES_VISIBILIDAD_AMPLIA = ['gestor_compras', 'aprobador_area', 'aprobador_ejecutivo'];
-
 async function listar(req, res) {
   const solicitud = await Solicitud.findByPk(req.params.id);
   if (!solicitud) return notFound(res, 'Solicitud no encontrada');
 
-  const tieneVisibilidadAmplia = (req.user.roles || []).some((rol) => ROLES_VISIBILIDAD_AMPLIA.includes(rol.nombre));
-  if (!tieneVisibilidadAmplia && solicitud.solicitanteUsuarioId !== req.user.id) {
+  if (!tieneVisibilidadAmplia(req.user.roles) && solicitud.solicitanteUsuarioId !== req.user.id) {
     return forbidden(res, 'No puedes ver las cotizaciones de esta solicitud');
   }
 

@@ -175,6 +175,13 @@ describe('Solicitudes API — CRUD y visibilidad', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(creada.body.data.id);
   });
+
+  it('super_administrador (visibilidad amplia) obtiene por id una solicitud que no es suya', async () => {
+    const creada = await crearSolicitud(solicitanteToken);
+    const res = await request(app).get(`/api/v1/solicitudes/${creada.body.data.id}`).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe(creada.body.data.id);
+  });
 });
 
 describe('Solicitudes API — envío a aprobación, aprobar/rechazar', () => {

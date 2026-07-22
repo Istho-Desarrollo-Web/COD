@@ -2,15 +2,7 @@ const { Solicitud, Cotizacion, SolicitudAprobacion, NivelAprobacion, TipoSolicit
 const { success, created, notFound, badRequest, forbidden } = require('../utils/responses');
 const { guardarArchivo } = require('../services/almacenamiento.service');
 const { enviarAprobacion: resolverEnvioAprobacion } = require('../services/solicitudAprobacion.service');
-
-// Lista EXHAUSTIVA de roles con visibilidad ampliada (ven todas las
-// solicitudes) — ver la Nota de implementación del plan. Cualquier otro rol
-// con solicitudes:ver (solicitante, gestor_documental) solo ve las propias.
-const ROLES_VISIBILIDAD_AMPLIA = ['gestor_compras', 'aprobador_area', 'aprobador_ejecutivo'];
-
-function tieneVisibilidadAmplia(roles) {
-  return (roles || []).some((rol) => ROLES_VISIBILIDAD_AMPLIA.includes(rol.nombre));
-}
+const { tieneVisibilidadAmplia } = require('../utils/visibilidadSolicitud');
 
 async function listarTipos(req, res) {
   const tipos = await TipoSolicitud.findAll({ where: { activo: true }, order: [['nombre', 'ASC']] });

@@ -1,22 +1,15 @@
 const { Solicitud, SolicitudComentario, Usuario, Auditoria } = require('../models');
 const { success, created, notFound, badRequest, forbidden } = require('../utils/responses');
+const { tieneVisibilidadAmplia } = require('../utils/visibilidadSolicitud');
 
-// Duplicado intencionalmente de solicitud.controller.js / cotizacion.controller.js
-// — los controllers de este codebase no se importan entre sí y no hay un
-// helper compartido para esto. Ambas funciones de este archivo necesitan el
-// chequeo (a diferencia de cotizacion.controller.js, donde solo `listar` lo
-// necesitaba): `listar` está gateada por `solicitudes:ver` (mismo hueco de
-// siempre); `crear` está gateada por `solicitudes:comentar`, que en el seed
-// actual SÍ tiene `solicitante` (rol de visibilidad restringida) — sin este
-// chequeo, cualquier solicitante podría comentar en solicitudes ajenas
-// recorriendo ids secuenciales (IDOR), rompiendo la restricción de que un
-// solicitante solo opera sobre lo propio.
-const ROLES_VISIBILIDAD_AMPLIA = ['gestor_compras', 'aprobador_area', 'aprobador_ejecutivo'];
-
-function tieneVisibilidadAmplia(roles) {
-  return (roles || []).some((rol) => ROLES_VISIBILIDAD_AMPLIA.includes(rol.nombre));
-}
-
+// Ambas funciones de este archivo necesitan el chequeo (a diferencia de
+// cotizacion.controller.js, donde solo `listar` lo necesitaba): `listar`
+// está gateada por `solicitudes:ver` (mismo hueco de siempre); `crear` está
+// gateada por `solicitudes:comentar`, que en el seed actual SÍ tiene
+// `solicitante` (rol de visibilidad restringida) — sin este chequeo,
+// cualquier solicitante podría comentar en solicitudes ajenas recorriendo
+// ids secuenciales (IDOR), rompiendo la restricción de que un solicitante
+// solo opera sobre lo propio.
 async function listar(req, res) {
   const solicitud = await Solicitud.findByPk(req.params.id);
   if (!solicitud) return notFound(res, 'Solicitud no encontrada');

@@ -8,6 +8,7 @@ const { Rol, Usuario, Area, TipoSolicitud, Proveedor, Cotizacion } = require('..
 const { invalidarCachePermisos } = require('../../src/middlewares/roles');
 const { app } = require('../../server');
 
+let adminToken;
 let gestorComprasToken;
 let solicitanteToken;
 let otroSolicitanteToken;
@@ -28,6 +29,11 @@ beforeAll(async () => {
     tipo: 'proveedor', documentoIdentificacion: `980${Date.now()}`, razonSocial: 'Proveedor Cotizaciones SAS',
     criticidad: 'relevante', areaSolicitanteId: area.id,
   });
+
+  const adminLogin = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ username: 'admin', password: process.env.SEED_PASSWORD_ADMIN || 'CambiarAhora123!' });
+  adminToken = adminLogin.body.data.token;
 
   const gestorRol = await Rol.findOne({ where: { nombre: 'gestor_compras' } });
   const gestorUsername = `gestor_compras_cot_${Date.now()}`;
@@ -191,5 +197,20 @@ describe('Cotizaciones API', () => {
       .set('Authorization', `Bearer ${solicitanteToken}`);
     expect(resDueño.status).toBe(200);
     expect(resDueño.body.data.length).toBeGreaterThan(0);
+  });
+
+  it('super_administrador (visibilidad amplia) puede listar cotizaciones de una solicitud que no es suya', async () => {
+    const solicitudId = await crearSolicitud();
+    await request(app)
+      .post(`/api/v1/solicitudes/${solicitudId}/cotizaciones`)
+      .set('Authorization', `Bearer ${gestorComprasToken}`)
+      .send({ proveedorId: proveedor.id, monto: 90000 });
+
+    const res = await request(app)
+      .get(`/api/v1/solicitudes/${solicitudId}/cotizaciones`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThan(0);
+    expect(res.body.data[0].Proveedor.id).toBe(proveedor.id);
   });
 });

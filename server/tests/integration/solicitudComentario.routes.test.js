@@ -8,6 +8,7 @@ const { Rol, Usuario, Area, TipoSolicitud } = require('../../src/models');
 const { invalidarCachePermisos } = require('../../src/middlewares/roles');
 const { app } = require('../../server');
 
+let adminToken;
 let gestorComprasToken;
 let solicitanteToken;
 let otroSolicitanteToken;
@@ -37,6 +38,11 @@ beforeAll(async () => {
 
   area = await Area.create({ nombre: 'Comentarios Area', codigo: `COMENTAREA${Date.now()}` });
   tipoCompra = await TipoSolicitud.findOne({ where: { nombre: 'compra' } });
+
+  const adminLogin = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ username: 'admin', password: process.env.SEED_PASSWORD_ADMIN || 'CambiarAhora123!' });
+  adminToken = adminLogin.body.data.token;
 
   gestorComprasToken = await crearUsuarioConRol('gestor_compras', 'gestor_compras_com');
   solicitanteToken = await crearUsuarioConRol('solicitante', 'solicitante_com');
@@ -99,6 +105,12 @@ describe('Comentarios de Solicitud API', () => {
   it('aprobador_area (con solicitudes:ver) puede leer los comentarios aunque no pueda escribir', async () => {
     const res = await request(app).get(`/api/v1/solicitudes/${solicitudId}/comentarios`).set('Authorization', `Bearer ${aprobadorAreaToken}`);
     expect(res.status).toBe(200);
+  });
+
+  it('super_administrador (visibilidad amplia) puede leer los comentarios de una solicitud que no es suya', async () => {
+    const res = await request(app).get(`/api/v1/solicitudes/${solicitudId}/comentarios`).set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(2);
   });
 
   it('returns 403 cuando un solicitante que no es el dueño intenta listar los comentarios (IDOR)', async () => {
