@@ -38,12 +38,12 @@ async function crear(req, res) {
           email: nuevoUsuario.email,
           nombre: nuevoUsuario.nombre,
           apellido: nuevoUsuario.apellido,
-          rolId: nuevoUsuario.rolId,
           passwordHash,
           requiereCambioPassword: nuevoUsuario.requiereCambioPassword !== undefined ? nuevoUsuario.requiereCambioPassword : true,
         },
         { transaction: t }
       );
+      await usuarioCreado.setRoles(nuevoUsuario.rolIds, { transaction: t });
       liderId = usuarioCreado.id;
     }
 

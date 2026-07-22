@@ -20,14 +20,14 @@ describe('auth.service', () => {
       data: {
         token: 'tok',
         refreshToken: 'reftok',
-        usuario: { id: 1, username: 'admin', nombre: 'Administrador', rol: 'admin' },
+        usuario: { id: 1, username: 'admin', nombre: 'Administrador', roles: [{ id: 1, nombre: 'super_administrador', nivel: 100 }] },
         permisos: { areas: ['ver', 'crear'] },
       },
     });
 
     const user = await authService.login('admin', 'CambiarAhora123!');
 
-    expect(user.rol).toBe('admin');
+    expect(user.roles).toEqual([{ id: 1, nombre: 'super_administrador', nivel: 100 }]);
     expect(user.permisos.areas).toContain('crear');
     expect(getStoredToken()).toBe('tok');
     expect(getStoredRefreshToken()).toBe('reftok');
@@ -47,7 +47,7 @@ describe('auth.service', () => {
   it('obtenerUsuarioActual fetches /auth/me and updates the stored user', async () => {
     mock.onGet('/auth/me').reply(200, {
       success: true,
-      data: { id: 1, username: 'admin', rol: 'admin', permisos: { areas: ['ver'] } },
+      data: { id: 1, username: 'admin', roles: [{ id: 1, nombre: 'super_administrador', nivel: 100 }], permisos: { areas: ['ver'] } },
     });
 
     const user = await authService.obtenerUsuarioActual();

@@ -14,7 +14,11 @@ async function cargarCachePermisos() {
   cache = {};
   for (const fila of filas) {
     cache[fila.rolId] = cache[fila.rolId] || {};
-    cache[fila.rolId][fila.modulo] = fila.acciones;
+    // `acciones` es DataTypes.JSON, pero esta base de datos lo materializa
+    // como `longtext` (no JSON nativo) — Sequelize no lo re-parsea solo, así
+    // que llega como el string `'["ver"]'` en vez del array. Normalizarlo
+    // aquí es el único punto por el que pasan todas las lecturas de permisos.
+    cache[fila.rolId][fila.modulo] = typeof fila.acciones === 'string' ? JSON.parse(fila.acciones) : fila.acciones;
   }
   cacheLoadedAt = now;
   return cache;
@@ -27,8 +31,10 @@ function invalidarCachePermisos() {
 function requierePermiso(modulo, accion) {
   return asyncHandler(async (req, res, next) => {
     const permisos = await cargarCachePermisos();
-    const acciones = permisos[req.user?.rolId]?.[modulo] || [];
-    if (!acciones.includes(accion)) return forbidden(res, 'Sin permisos para esta acción');
+    // Un usuario con varios roles tiene el permiso si CUALQUIERA de sus
+    // roles lo otorga — es una unión, no una intersección.
+    const autorizado = (req.user?.roles || []).some((rol) => (permisos[rol.id]?.[modulo] || []).includes(accion));
+    if (!autorizado) return forbidden(res, 'Sin permisos para esta acción');
     return next();
   });
 }
@@ -44,11 +50,20 @@ function requiereRolMinimo(nombreRolMinimo) {
   });
 }
 
-const soloAdmin = requiereRolMinimo('admin');
+const soloAdmin = requiereRolMinimo('super_administrador');
 
-async function obtenerPermisosDeRol(rolId) {
+// Fusiona (unión) las acciones por módulo entre todos los roles del
+// usuario — el frontend sigue esperando un único objeto `permisos` ya
+// resuelto, no uno por rol.
+async function obtenerPermisosDeRoles(rolIds) {
   const permisos = await cargarCachePermisos();
-  return permisos[rolId] || {};
+  const fusionado = {};
+  for (const rolId of rolIds) {
+    for (const [modulo, acciones] of Object.entries(permisos[rolId] || {})) {
+      fusionado[modulo] = Array.from(new Set([...(fusionado[modulo] || []), ...acciones]));
+    }
+  }
+  return fusionado;
 }
 
-module.exports = { requierePermiso, requiereRolMinimo, soloAdmin, cargarCachePermisos, invalidarCachePermisos, obtenerPermisosDeRol };
+module.exports = { requierePermiso, requiereRolMinimo, soloAdmin, cargarCachePermisos, invalidarCachePermisos, obtenerPermisosDeRoles };

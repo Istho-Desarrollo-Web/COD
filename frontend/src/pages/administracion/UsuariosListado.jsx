@@ -15,6 +15,10 @@ import DataTable from '../../components/common/Table/DataTable';
 import ViewToggle from '../../components/common/ViewToggle';
 import StatusChip from '../../components/common/StatusChip/StatusChip';
 
+function nombresDeRoles(usuario) {
+  return (usuario.roles || []).map((rol) => rol.nombre).join(', ');
+}
+
 function UsuarioCard({ usuario, nombreRol, onEditar }) {
   const interactivo = Boolean(onEditar);
   return (
@@ -93,7 +97,7 @@ export default function UsuariosListado() {
 
   function abrirCrear() {
     setUsuarioEditando(null);
-    reset({ nombre: '', apellido: '', email: '', username: '', password: '', rolId: '', requiereCambioPassword: true, activo: true });
+    reset({ nombre: '', apellido: '', email: '', username: '', password: '', rolIds: [], requiereCambioPassword: true, activo: true });
     setModalAbierto(true);
   }
 
@@ -105,7 +109,7 @@ export default function UsuariosListado() {
       email: usuario.email,
       username: usuario.username,
       password: '',
-      rolId: String(usuario.rolId),
+      rolIds: (usuario.roles || []).map((rol) => String(rol.id)),
       requiereCambioPassword: usuario.requiereCambioPassword,
       activo: usuario.activo,
     });
@@ -120,12 +124,13 @@ export default function UsuariosListado() {
 
   async function onGuardar(valores) {
     try {
+      const rolIds = (valores.rolIds || []).map(Number);
       if (usuarioEditando) {
         const cambios = {
           nombre: valores.nombre,
           apellido: valores.apellido,
           email: valores.email,
-          rolId: Number(valores.rolId),
+          rolIds,
           requiereCambioPassword: valores.requiereCambioPassword,
           activo: valores.activo,
         };
@@ -139,7 +144,7 @@ export default function UsuariosListado() {
           nombre: valores.nombre,
           apellido: valores.apellido,
           password: valores.password,
-          rolId: Number(valores.rolId),
+          rolIds,
           requiereCambioPassword: valores.requiereCambioPassword,
         });
         enqueueSnackbar('Usuario creado exitosamente', { variant: 'success' });
@@ -164,13 +169,11 @@ export default function UsuariosListado() {
     }
   }
 
-  const nombresPorRolId = Object.fromEntries(roles.map((r) => [r.id, r.nombre]));
-
   const columnas = [
     { key: 'nombre', label: 'Nombre', render: (valor, row) => `${row.nombre} ${row.apellido}` },
     { key: 'username', label: 'Usuario' },
     { key: 'email', label: 'Email' },
-    { key: 'rolId', label: 'Rol', render: (valor) => nombresPorRolId[valor] || valor },
+    { key: 'roles', label: 'Rol', render: (valor, row) => nombresDeRoles(row) },
     { key: 'activo', label: 'Estado', render: (valor) => <StatusChip status={valor ? 'activo' : 'inactivo'} /> },
   ];
 
@@ -210,7 +213,7 @@ export default function UsuariosListado() {
             <UsuarioCard
               key={usuario.id}
               usuario={usuario}
-              nombreRol={nombresPorRolId[usuario.rolId] || usuario.rolId}
+              nombreRol={nombresDeRoles(usuario)}
               onEditar={puedeEditar ? () => abrirEditar(usuario) : undefined}
             />
           ))}
@@ -256,29 +259,27 @@ export default function UsuariosListado() {
             {...register('password', { required: usuarioEditando ? false : 'La contraseña es obligatoria' })}
           />
 
-          <div>
-            <label htmlFor="usuario-rolId" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-              Rol
-            </label>
-            <select
-              id="usuario-rolId"
-              className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-centhrix-surface text-slate-900 dark:text-slate-100"
-              {...register('rolId', { required: 'El rol es obligatorio' })}
-            >
-              <option value="">Selecciona un rol</option>
+          <fieldset>
+            <legend className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Roles</legend>
+            <div className="space-y-1">
               {roles.map((rol) => (
-                <option key={rol.id} value={rol.id}>
+                <label key={rol.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                  <input
+                    type="checkbox"
+                    value={rol.id}
+                    {...register('rolIds', { validate: (value) => (value && value.length > 0) || 'Selecciona al menos un rol' })}
+                  />
                   {rol.nombre}
-                </option>
+                </label>
               ))}
-            </select>
-            {errors.rolId?.message && (
+            </div>
+            {errors.rolIds?.message && (
               <p role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" aria-hidden="true" />
-                {errors.rolId.message}
+                {errors.rolIds.message}
               </p>
             )}
-          </div>
+          </fieldset>
 
           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
             <input type="checkbox" {...register('requiereCambioPassword')} />

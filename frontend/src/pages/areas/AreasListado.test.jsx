@@ -135,7 +135,7 @@ describe('AreasListado', () => {
   it('creates a new lider usuario inline when "Asignar líder de área" and "Usuario nuevo" are used', async () => {
     useAuth.mockReturnValue({ isAdmin: true });
     areaService.listar.mockResolvedValue([]);
-    rolService.listar.mockResolvedValue([{ id: 3, nombre: 'lider_area' }]);
+    rolService.listar.mockResolvedValue([{ id: 3, nombre: 'gestor_documental' }]);
     areaService.crear.mockResolvedValue({ id: 1, nombre: 'RRHH', codigo: 'RRHH', liderUsuarioId: 10 });
     renderPagina();
 
@@ -163,7 +163,7 @@ describe('AreasListado', () => {
           nombre: 'Juan',
           apellido: 'Pérez',
           password: 'Clave123!',
-          rolId: 3,
+          rolIds: [3],
           requiereCambioPassword: true,
         },
       })
@@ -194,7 +194,7 @@ describe('AreasListado', () => {
   it('shows a validation error and blocks submission when "Nombre del líder" is left empty', async () => {
     useAuth.mockReturnValue({ isAdmin: true });
     areaService.listar.mockResolvedValue([]);
-    rolService.listar.mockResolvedValue([{ id: 3, nombre: 'lider_area' }]);
+    rolService.listar.mockResolvedValue([{ id: 3, nombre: 'gestor_documental' }]);
     renderPagina();
 
     await screen.findByText('Sin áreas todavía');
@@ -214,12 +214,12 @@ describe('AreasListado', () => {
     expect(areaService.crear).not.toHaveBeenCalled();
   });
 
-  it('pre-selects the "lider_area" role once the catalog loads, but still lets the admin change it', async () => {
+  it('pre-selects the "gestor_documental" role once the catalog loads, but still lets the admin change it', async () => {
     useAuth.mockReturnValue({ isAdmin: true });
     areaService.listar.mockResolvedValue([]);
     rolService.listar.mockResolvedValue([
-      { id: 3, nombre: 'lider_area' },
-      { id: 5, nombre: 'admin' },
+      { id: 3, nombre: 'gestor_documental' },
+      { id: 5, nombre: 'super_administrador' },
     ]);
     areaService.crear.mockResolvedValue({ id: 1, nombre: 'RRHH', codigo: 'RRHH' });
     renderPagina();
@@ -246,7 +246,7 @@ describe('AreasListado', () => {
     await waitFor(() =>
       expect(areaService.crear).toHaveBeenCalledWith(
         expect.objectContaining({
-          nuevoUsuario: expect.objectContaining({ rolId: 5 }),
+          nuevoUsuario: expect.objectContaining({ rolIds: [5] }),
         })
       )
     );

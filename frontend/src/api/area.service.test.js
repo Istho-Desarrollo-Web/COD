@@ -26,7 +26,7 @@ describe('area.service', () => {
   });
 
   it('crear forwards nuevoUsuario when creating a lider inline', async () => {
-    const nuevoUsuario = { username: 'jperez', email: 'jperez@istho.com.co', nombre: 'Juan', apellido: 'Pérez', password: 'Clave123!', rolId: 3 };
+    const nuevoUsuario = { username: 'jperez', email: 'jperez@istho.com.co', nombre: 'Juan', apellido: 'Pérez', password: 'Clave123!', rolIds: [3] };
     mock.onPost('/areas').reply(201, { success: true, data: { id: 3, nombre: 'RRHH', codigo: 'RRHH', liderUsuarioId: 10 } });
     const area = await areaService.crear({ nombre: 'RRHH', codigo: 'RRHH', nuevoUsuario });
     expect(area).toEqual({ id: 3, nombre: 'RRHH', codigo: 'RRHH', liderUsuarioId: 10 });

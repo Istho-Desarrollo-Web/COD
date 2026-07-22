@@ -8,7 +8,8 @@ const { app } = require('../../server');
 
 let token;
 let solicitanteToken;
-let rolLiderAreaId;
+let rolGestorDocumentalId;
+let rolAuditorId;
 
 beforeAll(async () => {
   await sequelize.authenticate();
@@ -21,21 +22,23 @@ beforeAll(async () => {
 
   const solicitanteRol = await Rol.findOne({ where: { nombre: 'solicitante' } });
   const solicitanteUsername = `solicitante_usu_test_${Date.now()}`;
-  await Usuario.create({
+  const solicitanteUsuario = await Usuario.create({
     username: solicitanteUsername,
     email: `${solicitanteUsername}@istho.com.co`,
     passwordHash: await bcrypt.hash('ClaveSolicitante123!', 10),
     nombre: 'Solicitante',
     apellido: 'Prueba',
-    rolId: solicitanteRol.id,
   });
+  await solicitanteUsuario.setRoles([solicitanteRol.id]);
   const loginRes = await request(app)
     .post('/api/v1/auth/login')
     .send({ username: solicitanteUsername, password: 'ClaveSolicitante123!' });
   solicitanteToken = loginRes.body.data.token;
 
-  const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
-  rolLiderAreaId = liderRol.id;
+  const gestorDocumentalRol = await Rol.findOne({ where: { nombre: 'gestor_documental' } });
+  rolGestorDocumentalId = gestorDocumentalRol.id;
+  const auditorRol = await Rol.findOne({ where: { nombre: 'auditor' } });
+  rolAuditorId = auditorRol.id;
 });
 
 afterAll(async () => {
@@ -49,7 +52,7 @@ function datosUsuario(sufijo) {
     nombre: 'Ana',
     apellido: 'Gómez',
     password: 'ClaveSegura123!',
-    rolId: rolLiderAreaId,
+    rolIds: [rolGestorDocumentalId],
   };
 }
 
@@ -94,13 +97,23 @@ describe('Usuarios API', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 404 when rolId does not exist', async () => {
+  it('returns 404 when a rolId in rolIds does not exist', async () => {
     const datos = datosUsuario(`rol404_${Date.now()}`);
     const res = await request(app)
       .post('/api/v1/usuarios')
       .set('Authorization', `Bearer ${token}`)
-      .send({ ...datos, rolId: 999999 });
+      .send({ ...datos, rolIds: [999999] });
     expect(res.status).toBe(404);
+  });
+
+  it('creates a usuario with more than one role and returns both on read', async () => {
+    const datos = { ...datosUsuario(`multirol_${Date.now()}`), rolIds: [rolGestorDocumentalId, rolAuditorId] };
+    const createRes = await request(app).post('/api/v1/usuarios').set('Authorization', `Bearer ${token}`).send(datos);
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.data.roles.map((rol) => rol.id).sort()).toEqual([rolGestorDocumentalId, rolAuditorId].sort());
+
+    const getRes = await request(app).get(`/api/v1/usuarios/${createRes.body.data.id}`).set('Authorization', `Bearer ${token}`);
+    expect(getRes.body.data.roles.map((rol) => rol.id).sort()).toEqual([rolGestorDocumentalId, rolAuditorId].sort());
   });
 
   it('edits a usuario, allowing password reset without exposing the new hash', async () => {

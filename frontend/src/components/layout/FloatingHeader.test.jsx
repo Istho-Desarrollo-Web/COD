@@ -10,7 +10,7 @@ vi.mock('../../context/ThemeContext');
 
 describe('FloatingHeader', () => {
   beforeEach(() => {
-    useAuth.mockReturnValue({ user: { nombre: 'Ana', rol: 'admin' }, logout: vi.fn() });
+    useAuth.mockReturnValue({ user: { nombre: 'Ana', roles: [{ id: 1, nombre: 'super_administrador', nivel: 100 }] }, logout: vi.fn() });
     useTheme.mockReturnValue({ isDark: false, toggleTheme: vi.fn() });
   });
 
@@ -36,7 +36,7 @@ describe('FloatingHeader', () => {
 
   it('calls logout when the logout button is clicked', async () => {
     const logout = vi.fn();
-    useAuth.mockReturnValue({ user: { nombre: 'Ana', rol: 'admin' }, logout });
+    useAuth.mockReturnValue({ user: { nombre: 'Ana', roles: [{ id: 1, nombre: 'super_administrador', nivel: 100 }] }, logout });
     render(<FloatingHeader onToggleSidebar={vi.fn()} currentPath="/inicio" />);
     await userEvent.click(screen.getByLabelText('Cerrar sesión'));
     expect(logout).toHaveBeenCalledTimes(1);

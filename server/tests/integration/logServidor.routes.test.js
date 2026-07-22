@@ -23,14 +23,14 @@ beforeAll(async () => {
 
   const solicitanteRol = await Rol.findOne({ where: { nombre: 'solicitante' } });
   const solicitanteUsername = `solicitante_logs_${Date.now()}`;
-  await Usuario.create({
+  const solicitanteUsuario = await Usuario.create({
     username: solicitanteUsername,
     email: `${solicitanteUsername}@istho.com.co`,
     passwordHash: await bcrypt.hash('ClaveSolicitante123!', 10),
     nombre: 'Solicitante',
     apellido: 'Logs',
-    rolId: solicitanteRol.id,
   });
+  await solicitanteUsuario.setRoles([solicitanteRol.id]);
   const solicitanteLogin = await request(app)
     .post('/api/v1/auth/login')
     .send({ username: solicitanteUsername, password: 'ClaveSolicitante123!' });

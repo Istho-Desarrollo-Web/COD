@@ -42,7 +42,7 @@ describe('AuthContext', () => {
 
   it('hydrates the user from /me when a token is already stored', async () => {
     getStoredToken.mockReturnValue('tok-existente');
-    authService.obtenerUsuarioActual.mockResolvedValue({ username: 'admin', rol: 'admin', permisos: {} });
+    authService.obtenerUsuarioActual.mockResolvedValue({ username: 'admin', roles: [{ id: 1, nombre: 'super_administrador', nivel: 100 }], permisos: {} });
 
     render(
       <AuthProvider>
@@ -68,7 +68,7 @@ describe('AuthContext', () => {
   });
 
   it('login updates the context and tienePermiso resolves from the returned permisos', async () => {
-    authService.login.mockResolvedValue({ username: 'lider', rol: 'lider_area', permisos: { areas: ['ver'] } });
+    authService.login.mockResolvedValue({ username: 'lider', roles: [{ id: 5, nombre: 'gestor_documental', nivel: 40 }], permisos: { areas: ['ver'] } });
 
     render(
       <AuthProvider>
@@ -85,7 +85,7 @@ describe('AuthContext', () => {
   });
 
   it('admin always resolves tienePermiso to true, regardless of the permisos map', async () => {
-    authService.login.mockResolvedValue({ username: 'admin', rol: 'admin', permisos: {} });
+    authService.login.mockResolvedValue({ username: 'admin', roles: [{ id: 1, nombre: 'super_administrador', nivel: 100 }], permisos: {} });
 
     render(
       <AuthProvider>
@@ -100,7 +100,7 @@ describe('AuthContext', () => {
   });
 
   it('logout clears the user from context', async () => {
-    authService.login.mockResolvedValue({ username: 'admin', rol: 'admin', permisos: {} });
+    authService.login.mockResolvedValue({ username: 'admin', roles: [{ id: 1, nombre: 'super_administrador', nivel: 100 }], permisos: {} });
 
     render(
       <AuthProvider>

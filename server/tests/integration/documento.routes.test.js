@@ -8,7 +8,7 @@ const { Area, Carpeta, TipoDocumento, Documento, Rol, Usuario } = require('../..
 const { app } = require('../../server');
 
 let token;
-let operacionesToken;
+let gestorComprasToken;
 let area;
 let carpeta;
 let tipoDocumento;
@@ -31,20 +31,23 @@ beforeAll(async () => {
   await Documento.create({ areaId: area.id, carpetaId: carpeta.id, tipoDocumentoId: tipoDocumento.id, nombre: 'Doc Vigente', estado: 'vigente' });
   await Documento.create({ areaId: area.id, carpetaId: carpeta.id, tipoDocumentoId: tipoDocumento.id, nombre: 'Doc Vencido', estado: 'vencido' });
 
-  const operacionesRol = await Rol.findOne({ where: { nombre: 'operaciones' } });
-  const operacionesUsername = `operaciones_doc_${Date.now()}`;
-  await Usuario.create({
-    username: operacionesUsername,
-    email: `${operacionesUsername}@istho.com.co`,
-    passwordHash: await bcrypt.hash('ClaveOperaciones123!', 10),
-    nombre: 'Operaciones',
-    apellido: 'Prueba',
-    rolId: operacionesRol.id,
+  // gestor_compras no tiene ningún permiso de `documentos` en la matriz
+  // nueva (igual que `operaciones` no lo tenía en la vieja) — sirve como
+  // fixture de "rol sin acceso a documentos" para las pruebas 403 de abajo.
+  const gestorComprasRol = await Rol.findOne({ where: { nombre: 'gestor_compras' } });
+  const gestorComprasUsername = `gestor_compras_doc_${Date.now()}`;
+  const gestorComprasUsuario = await Usuario.create({
+    username: gestorComprasUsername,
+    email: `${gestorComprasUsername}@istho.com.co`,
+    passwordHash: await bcrypt.hash('ClaveGestorCompras123!', 10),
+    nombre: 'Gestor',
+    apellido: 'Compras',
   });
+  await gestorComprasUsuario.setRoles([gestorComprasRol.id]);
   const loginRes = await request(app)
     .post('/api/v1/auth/login')
-    .send({ username: operacionesUsername, password: 'ClaveOperaciones123!' });
-  operacionesToken = loginRes.body.data.token;
+    .send({ username: gestorComprasUsername, password: 'ClaveGestorCompras123!' });
+  gestorComprasToken = loginRes.body.data.token;
 });
 
 afterAll(async () => {
@@ -69,7 +72,7 @@ describe('GET /api/v1/documentos', () => {
   });
 
   it('returns 403 for a role without documentos.ver (operaciones)', async () => {
-    const res = await request(app).get(`/api/v1/documentos?areaId=${area.id}`).set('Authorization', `Bearer ${operacionesToken}`);
+    const res = await request(app).get(`/api/v1/documentos?areaId=${area.id}`).set('Authorization', `Bearer ${gestorComprasToken}`);
     expect(res.status).toBe(403);
   });
 });
@@ -138,7 +141,7 @@ describe('POST /api/v1/documentos', () => {
   it('returns 403 for a role without documentos.crear (operaciones)', async () => {
     const res = await request(app)
       .post('/api/v1/documentos')
-      .set('Authorization', `Bearer ${operacionesToken}`)
+      .set('Authorization', `Bearer ${gestorComprasToken}`)
       .field('areaId', String(area.id))
       .field('carpetaId', String(carpeta.id))
       .field('tipoDocumentoId', String(tipoDocumento.id))
@@ -236,7 +239,7 @@ describe('PUT /api/v1/documentos/:id', () => {
 
     const res = await request(app)
       .put(`/api/v1/documentos/${id}`)
-      .set('Authorization', `Bearer ${operacionesToken}`)
+      .set('Authorization', `Bearer ${gestorComprasToken}`)
       .send({ nombre: 'No debería editarse' });
     expect(res.status).toBe(403);
   });
@@ -266,17 +269,17 @@ describe('DELETE /api/v1/documentos/:id', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns 403 for a role without documentos.eliminar (lider_area has no eliminar)', async () => {
-    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+  it('returns 403 for a role without documentos.eliminar (gestor_documental has no eliminar)', async () => {
+    const gestorDocumentalRol = await Rol.findOne({ where: { nombre: 'gestor_documental' } });
     const liderUsername = `lider_delete_${Date.now()}`;
-    await Usuario.create({
+    const liderUsuario = await Usuario.create({
       username: liderUsername,
       email: `${liderUsername}@istho.com.co`,
       passwordHash: await bcrypt.hash('ClaveLider123!', 10),
       nombre: 'Lider',
       apellido: 'Prueba',
-      rolId: liderRol.id,
     });
+    await liderUsuario.setRoles([gestorDocumentalRol.id]);
     const liderLogin = await request(app)
       .post('/api/v1/auth/login')
       .send({ username: liderUsername, password: 'ClaveLider123!' });
@@ -351,14 +354,14 @@ describe('Documento versiones', () => {
   it('returns 403 for a role without documentos.aprobar_version (solicitante)', async () => {
     const solicitanteRol = await Rol.findOne({ where: { nombre: 'solicitante' } });
     const solicitanteUsername = `solicitante_version_${Date.now()}`;
-    await Usuario.create({
+    const solicitanteUsuario = await Usuario.create({
       username: solicitanteUsername,
       email: `${solicitanteUsername}@istho.com.co`,
       passwordHash: await bcrypt.hash('ClaveSolicitante123!', 10),
       nombre: 'Solicitante',
       apellido: 'Version',
-      rolId: solicitanteRol.id,
     });
+    await solicitanteUsuario.setRoles([solicitanteRol.id]);
     const solicitanteLogin = await request(app)
       .post('/api/v1/auth/login')
       .send({ username: solicitanteUsername, password: 'ClaveSolicitante123!' });
@@ -462,7 +465,7 @@ describe('Descarga de archivos', () => {
 
     const res = await request(app)
       .get(`/api/v1/documentos/${id}/descargar`)
-      .set('Authorization', `Bearer ${operacionesToken}`);
+      .set('Authorization', `Bearer ${gestorComprasToken}`);
     expect(res.status).toBe(403);
   });
 

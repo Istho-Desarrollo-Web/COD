@@ -9,7 +9,7 @@ module.exports = (sequelize) =>
       passwordHash: { type: DataTypes.STRING(255), allowNull: false },
       nombre: { type: DataTypes.STRING(100), allowNull: false },
       apellido: { type: DataTypes.STRING(100), allowNull: false },
-      rolId: { type: DataTypes.INTEGER, allowNull: false },
+      areaId: { type: DataTypes.INTEGER, allowNull: true },
       activo: { type: DataTypes.BOOLEAN, defaultValue: true },
       requiereCambioPassword: { type: DataTypes.BOOLEAN, defaultValue: false },
       ultimoAcceso: { type: DataTypes.DATE, allowNull: true },

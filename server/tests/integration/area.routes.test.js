@@ -21,14 +21,14 @@ beforeAll(async () => {
 
   const solicitanteRol = await Rol.findOne({ where: { nombre: 'solicitante' } });
   const solicitanteUsername = `solicitante_test_${Date.now()}`;
-  await Usuario.create({
+  const solicitanteUsuario = await Usuario.create({
     username: solicitanteUsername,
     email: `${solicitanteUsername}@istho.com.co`,
     passwordHash: await bcrypt.hash('ClaveSolicitante123!', 10),
     nombre: 'Solicitante',
     apellido: 'Prueba',
-    rolId: solicitanteRol.id,
   });
+  await solicitanteUsuario.setRoles([solicitanteRol.id]);
   const loginRes = await request(app)
     .post('/api/v1/auth/login')
     .send({ username: solicitanteUsername, password: 'ClaveSolicitante123!' });
@@ -102,7 +102,7 @@ describe('Areas API', () => {
   });
 
   it('creates an area together with a new lider usuario in one transaction', async () => {
-    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const liderRol = await Rol.findOne({ where: { nombre: 'gestor_documental' } });
     const sufijo = Date.now();
     const nuevoUsuario = {
       username: `lider_${sufijo}`,
@@ -110,7 +110,7 @@ describe('Areas API', () => {
       nombre: 'Carlos',
       apellido: 'Ruiz',
       password: 'ClaveLider123!',
-      rolId: liderRol.id,
+      rolIds: [liderRol.id],
     };
 
     const res = await request(app)
@@ -125,17 +125,17 @@ describe('Areas API', () => {
   });
 
   it('rolls back both the area and the usuario when nuevoUsuario has a duplicate username', async () => {
-    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const liderRol = await Rol.findOne({ where: { nombre: 'gestor_documental' } });
     const sufijo = Date.now();
     const usernameDuplicado = `duplicado_${sufijo}`;
-    await Usuario.create({
+    const usuarioDuplicado = await Usuario.create({
       username: usernameDuplicado,
       email: `existente_${sufijo}@istho.com.co`,
       passwordHash: await bcrypt.hash('ClaveExistente123!', 10),
       nombre: 'Ya',
       apellido: 'Existe',
-      rolId: liderRol.id,
     });
+    await usuarioDuplicado.setRoles([liderRol.id]);
 
     const codigoIntento = `ROLLBACK${sufijo}`;
     const res = await request(app)
@@ -150,7 +150,7 @@ describe('Areas API', () => {
           nombre: 'Otro',
           apellido: 'Usuario',
           password: 'ClaveNueva123!',
-          rolId: liderRol.id,
+          rolIds: [liderRol.id],
         },
       });
     expect(res.status).toBe(409);
@@ -160,7 +160,7 @@ describe('Areas API', () => {
   });
 
   it('rolls back the just-created usuario when Area.create fails on a duplicate codigo', async () => {
-    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const liderRol = await Rol.findOne({ where: { nombre: 'gestor_documental' } });
     const sufijo = Date.now();
     const codigoDuplicado = `DUPROLLBACK${sufijo}`;
 
@@ -174,7 +174,7 @@ describe('Areas API', () => {
       nombre: 'Nuevo',
       apellido: 'Lider',
       password: 'ClaveLider123!',
-      rolId: liderRol.id,
+      rolIds: [liderRol.id],
     };
 
     const res = await request(app)
@@ -188,7 +188,7 @@ describe('Areas API', () => {
   });
 
   it('creates an area with an existing usuario as líder (no nuevoUsuario)', async () => {
-    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const liderRol = await Rol.findOne({ where: { nombre: 'gestor_documental' } });
     const sufijo = Date.now();
     const usuarioExistente = await Usuario.create({
       username: `existente_lider_${sufijo}`,
@@ -196,8 +196,8 @@ describe('Areas API', () => {
       passwordHash: await bcrypt.hash('ClaveExistente123!', 10),
       nombre: 'Lider',
       apellido: 'Existente',
-      rolId: liderRol.id,
     });
+    await usuarioExistente.setRoles([liderRol.id]);
 
     const res = await request(app)
       .post('/api/v1/areas')
@@ -208,7 +208,7 @@ describe('Areas API', () => {
   });
 
   it('returns 400 when both liderUsuarioId and nuevoUsuario are sent', async () => {
-    const liderRol = await Rol.findOne({ where: { nombre: 'lider_area' } });
+    const liderRol = await Rol.findOne({ where: { nombre: 'gestor_documental' } });
     const sufijo = Date.now();
     const res = await request(app)
       .post('/api/v1/areas')
@@ -223,7 +223,7 @@ describe('Areas API', () => {
           nombre: 'X',
           apellido: 'Y',
           password: 'Clave123!',
-          rolId: liderRol.id,
+          rolIds: [liderRol.id],
         },
       });
     expect(res.status).toBe(400);

@@ -47,7 +47,7 @@ export default function FloatingHeader({ onToggleSidebar, currentPath }) {
           <UserCircle className="w-6 h-6 text-slate-400" />
           <div className="hidden sm:block text-sm">
             <p className="font-medium text-slate-700 dark:text-slate-200">{user?.nombre}</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">{user?.rol}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">{user?.roles?.map((rol) => rol.nombre).join(', ')}</p>
           </div>
           <button
             type="button"

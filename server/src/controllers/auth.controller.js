@@ -1,7 +1,7 @@
 const { autenticar, firmarTokens, refrescarToken } = require('../services/auth.service');
 const { Auditoria, Usuario, Rol } = require('../models');
 const { success, unauthorized } = require('../utils/responses');
-const { obtenerPermisosDeRol } = require('../middlewares/roles');
+const { obtenerPermisosDeRoles } = require('../middlewares/roles');
 
 async function login(req, res) {
   const { username, password } = req.body;
@@ -19,18 +19,25 @@ async function login(req, res) {
     userAgent: req.get('User-Agent'),
   });
 
-  const permisos = await obtenerPermisosDeRol(usuario.rolId);
+  const permisos = await obtenerPermisosDeRoles(usuario.roles.map((rol) => rol.id));
 
   return success(res, {
     token,
     refreshToken,
-    usuario: { id: usuario.id, username: usuario.username, nombre: usuario.nombre, rol: usuario.Rol.nombre },
+    usuario: {
+      id: usuario.id,
+      username: usuario.username,
+      nombre: usuario.nombre,
+      // Misma forma que req.user.roles (armado en middlewares/auth.js) para
+      // que el frontend no distinga si el usuario vino del login o de /me.
+      roles: usuario.roles.map((rol) => ({ id: rol.id, nombre: rol.nombre, nivel: rol.nivel })),
+    },
     permisos,
   });
 }
 
 async function me(req, res) {
-  const permisos = await obtenerPermisosDeRol(req.user.rolId);
+  const permisos = await obtenerPermisosDeRoles(req.user.roles.map((rol) => rol.id));
   return success(res, { ...req.user, permisos });
 }
 

@@ -10,7 +10,7 @@ vi.mock('../../api/usuario.service');
 vi.mock('../../api/rol.service');
 vi.mock('../../context/AuthContext');
 
-const ROLES = [{ id: 3, nombre: 'lider_area' }];
+const ROLES = [{ id: 3, nombre: 'gestor_documental' }];
 
 function renderPagina() {
   return render(
@@ -37,25 +37,25 @@ describe('UsuariosListado', () => {
   it('renders usuarios resolving the rol name', async () => {
     useAuth.mockReturnValue({ tienePermiso: () => false });
     usuarioService.listar.mockResolvedValue([
-      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: true },
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', roles: [{ id: 3, nombre: 'gestor_documental' }], activo: true },
     ]);
     renderPagina();
-    expect(await screen.findByText('lider_area')).toBeInTheDocument();
+    expect(await screen.findByText('gestor_documental')).toBeInTheDocument();
   });
 
   it('shows both the role name and the active/inactive state on the tarjeta, without relying on chip color alone', async () => {
     localStorage.setItem('cod_view_usuarios', 'tarjetas');
     useAuth.mockReturnValue({ tienePermiso: () => false });
     usuarioService.listar.mockResolvedValue([
-      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: false },
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', roles: [{ id: 3, nombre: 'gestor_documental' }], activo: false },
     ]);
     renderPagina();
 
-    expect(await screen.findByText('lider_area')).toBeInTheDocument();
+    expect(await screen.findByText('gestor_documental')).toBeInTheDocument();
     expect(screen.getByText('inactivo')).toBeInTheDocument();
   });
 
-  it('shows a validation error and blocks creation when "Rol" is left unselected', async () => {
+  it('shows a validation error and blocks creation when "Roles" is left unselected', async () => {
     useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'usuarios' && accion === 'crear' });
     usuarioService.listar.mockResolvedValue([]);
     renderPagina();
@@ -70,7 +70,7 @@ describe('UsuariosListado', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
 
-    expect(await screen.findByText('El rol es obligatorio')).toBeInTheDocument();
+    expect(await screen.findByText('Selecciona al menos un rol')).toBeInTheDocument();
     expect(usuarioService.crear).not.toHaveBeenCalled();
   });
 
@@ -99,10 +99,10 @@ describe('UsuariosListado', () => {
 
     await userEvent.type(screen.getByLabelText('Email'), 'jperez@istho.com.co');
     await userEvent.type(screen.getByLabelText('Contraseña'), 'Clave123!');
-    await userEvent.selectOptions(screen.getByLabelText('Rol'), '3');
+    await userEvent.click(screen.getByLabelText('gestor_documental'));
 
     usuarioService.listar.mockResolvedValue([
-      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: true },
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', roles: [{ id: 3, nombre: 'gestor_documental' }], activo: true },
     ]);
     await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
 
@@ -114,7 +114,7 @@ describe('UsuariosListado', () => {
           apellido: 'Pérez',
           email: 'jperez@istho.com.co',
           password: 'Clave123!',
-          rolId: 3,
+          rolIds: [3],
           requiereCambioPassword: true,
         })
       )
@@ -125,7 +125,7 @@ describe('UsuariosListado', () => {
   it('edits an existing usuario without requiring a new password', async () => {
     useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'usuarios' && ['ver', 'editar'].includes(accion) });
     usuarioService.listar.mockResolvedValue([
-      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: true, requiereCambioPassword: true },
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', roles: [{ id: 3, nombre: 'gestor_documental' }], activo: true, requiereCambioPassword: true },
     ]);
     usuarioService.editar.mockResolvedValue({ id: 1, nombre: 'Juan Carlos' });
     renderPagina();
@@ -146,7 +146,7 @@ describe('UsuariosListado', () => {
   it('deletes a usuario after confirmation', async () => {
     useAuth.mockReturnValue({ tienePermiso: (modulo, accion) => modulo === 'usuarios' && ['ver', 'editar', 'eliminar'].includes(accion) });
     usuarioService.listar.mockResolvedValue([
-      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: true },
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', roles: [{ id: 3, nombre: 'gestor_documental' }], activo: true },
     ]);
     usuarioService.eliminar.mockResolvedValue(null);
     window.confirm = vi.fn(() => true);
@@ -163,7 +163,7 @@ describe('UsuariosListado', () => {
     localStorage.setItem('cod_view_usuarios', 'tarjetas');
     useAuth.mockReturnValue({ tienePermiso: () => false });
     usuarioService.listar.mockResolvedValue([
-      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', rolId: 3, activo: true },
+      { id: 1, nombre: 'Juan', apellido: 'Pérez', username: 'jperez', email: 'jperez@istho.com.co', roles: [{ id: 3, nombre: 'gestor_documental' }], activo: true },
     ]);
     renderPagina();
 

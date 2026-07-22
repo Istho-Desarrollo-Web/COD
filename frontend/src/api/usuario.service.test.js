@@ -26,7 +26,7 @@ describe('usuario.service', () => {
   });
 
   it('crear posts the given data and returns the created usuario', async () => {
-    const datos = { username: 'jperez', email: 'jperez@istho.com.co', nombre: 'Juan', apellido: 'Pérez', password: 'Clave123!', rolId: 3 };
+    const datos = { username: 'jperez', email: 'jperez@istho.com.co', nombre: 'Juan', apellido: 'Pérez', password: 'Clave123!', rolIds: [3] };
     mock.onPost('/usuarios').reply(201, { success: true, data: { id: 1, ...datos } });
     const usuario = await usuarioService.crear(datos);
     expect(usuario).toEqual({ id: 1, ...datos });

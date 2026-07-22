@@ -40,9 +40,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  function esSuperAdministrador(usuario) {
+    return (usuario?.roles || []).some((rol) => rol.nombre === 'super_administrador');
+  }
+
   function tienePermiso(modulo, accion) {
     if (!user) return false;
-    if (user.rol === 'admin') return true;
+    if (esSuperAdministrador(user)) return true;
     return (user.permisos?.[modulo] || []).includes(accion);
   }
 
@@ -50,7 +54,7 @@ export function AuthProvider({ children }) {
     user,
     isAuthenticated: !!user,
     isLoading,
-    isAdmin: user?.rol === 'admin',
+    isAdmin: esSuperAdministrador(user),
     login,
     logout,
     tienePermiso,
