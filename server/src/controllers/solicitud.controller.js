@@ -33,6 +33,9 @@ async function listar(req, res) {
 async function obtener(req, res) {
   const solicitud = await Solicitud.findByPk(req.params.id);
   if (!solicitud) return notFound(res, 'Solicitud no encontrada');
+  if (!tieneVisibilidadAmplia(req.user.roles) && solicitud.solicitanteUsuarioId !== req.user.id) {
+    return forbidden(res, 'No puedes ver esta solicitud');
+  }
   return success(res, solicitud);
 }
 

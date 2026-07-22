@@ -162,6 +162,19 @@ describe('Solicitudes API — CRUD y visibilidad', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(creada.body.data.id);
   });
+
+  it('returns 403 cuando un solicitante intenta obtener una solicitud que no es suya', async () => {
+    const creada = await crearSolicitud(solicitanteToken);
+    const res = await request(app).get(`/api/v1/solicitudes/${creada.body.data.id}`).set('Authorization', `Bearer ${otroSolicitanteToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('gestor_compras (visibilidad amplia) obtiene por id una solicitud que no es suya', async () => {
+    const creada = await crearSolicitud(solicitanteToken);
+    const res = await request(app).get(`/api/v1/solicitudes/${creada.body.data.id}`).set('Authorization', `Bearer ${gestorComprasToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe(creada.body.data.id);
+  });
 });
 
 describe('Solicitudes API — envío a aprobación, aprobar/rechazar', () => {
