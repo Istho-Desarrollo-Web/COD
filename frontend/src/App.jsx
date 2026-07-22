@@ -13,6 +13,7 @@ import DocumentosListado from './pages/documentos/DocumentosListado';
 import DocumentoDetalle from './pages/documentos/DocumentoDetalle';
 import CarpetasGestion from './pages/documentos/CarpetasGestion';
 import SolicitudesListado from './pages/solicitudes/SolicitudesListado';
+import SolicitudDetalle from './pages/solicitudes/SolicitudDetalle';
 import ProveedoresListado from './pages/proveedores/ProveedoresListado';
 import ProveedorDetalle from './pages/proveedores/ProveedorDetalle';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
@@ -95,6 +96,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="solicitudes" accion="ver">
                       <SolicitudesListado />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/solicitudes/:id"
+                  element={
+                    <PermissionRoute modulo="solicitudes" accion="ver">
+                      <SolicitudDetalle />
                     </PermissionRoute>
                   }
                 />
