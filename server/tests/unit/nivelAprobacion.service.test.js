@@ -21,4 +21,28 @@ describe('resolverNivelAprobacion', () => {
     NivelAprobacion.findOne.mockResolvedValue(null);
     expect(await resolverNivelAprobacion(1, 999)).toBeNull();
   });
+
+  it('escalates to aprobador_ejecutivo when criticidad is critico, regardless of monto', async () => {
+    NivelAprobacion.findOne.mockResolvedValue({ id: 3, rolAprobador: 'aprobador_ejecutivo' });
+    const nivel = await resolverNivelAprobacion(1, 500, 'critico');
+    expect(nivel).toEqual({ id: 3, rolAprobador: 'aprobador_ejecutivo' });
+    expect(NivelAprobacion.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tipoSolicitudId: 1, activo: true, rolAprobador: 'aprobador_ejecutivo' },
+        order: [['orden', 'ASC']],
+      })
+    );
+  });
+
+  it('falls back to monto-based resolution when criticidad is not critico', async () => {
+    NivelAprobacion.findOne.mockResolvedValue({ id: 1, rolAprobador: 'aprobador_area' });
+    const nivel = await resolverNivelAprobacion(1, 500_000, 'relevante');
+    expect(nivel).toEqual({ id: 1, rolAprobador: 'aprobador_area' });
+    expect(NivelAprobacion.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tipoSolicitudId: 1, montoDesde: expect.anything() }),
+        order: [['orden', 'ASC']],
+      })
+    );
+  });
 });
