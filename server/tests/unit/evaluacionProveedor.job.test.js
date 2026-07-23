@@ -93,4 +93,49 @@ describe('evaluacionProveedor.job', () => {
     const evaluacion = await EvaluacionProveedor.findOne({ where: { proveedorId: proveedor.id } });
     expect(evaluacion).toBeNull();
   });
+
+  it('da un margen de gracia de 30 días: la evaluación creada no nace ya vencida', async () => {
+    const fechaProximaEvaluacion = fechaEnDias(-1);
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `936${Date.now()}`, razonSocial: 'Job Evaluación Gracia SAS',
+      estado: 'activo', fechaProximaEvaluacion,
+    });
+
+    await ejecutar();
+
+    const evaluacion = await EvaluacionProveedor.findOne({ where: { proveedorId: proveedor.id } });
+    expect(evaluacion).not.toBeNull();
+    expect(evaluacion.fechaProgramada).not.toBe(fechaProximaEvaluacion);
+
+    const diffDias = Math.round(
+      (new Date(`${evaluacion.fechaProgramada}T00:00:00Z`) - new Date(`${fechaProximaEvaluacion}T00:00:00Z`))
+        / (24 * 60 * 60 * 1000)
+    );
+    expect(diffDias).toBe(30);
+  });
+
+  it('al marcar vencida una evaluación, reprograma fechaProximaEvaluacion del proveedor ~30 días adelante', async () => {
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `937${Date.now()}`, razonSocial: 'Job Evaluación Reprograma SAS',
+      estado: 'activo', fechaProximaEvaluacion: fechaEnDias(-40),
+    });
+    const evaluacion = await EvaluacionProveedor.create({
+      proveedorId: proveedor.id, periodo: 2025, fechaProgramada: fechaEnDias(-5), estado: 'pendiente',
+    });
+
+    await ejecutar();
+
+    await evaluacion.reload();
+    expect(evaluacion.estado).toBe('vencida');
+
+    await proveedor.reload();
+    expect(proveedor.fechaProximaEvaluacion).not.toBeNull();
+
+    const diffDias = Math.round(
+      (new Date(`${proveedor.fechaProximaEvaluacion}T00:00:00Z`) - new Date(`${fechaEnDias(0)}T00:00:00Z`))
+        / (24 * 60 * 60 * 1000)
+    );
+    expect(diffDias).toBeGreaterThanOrEqual(29);
+    expect(diffDias).toBeLessThanOrEqual(31);
+  });
 });
