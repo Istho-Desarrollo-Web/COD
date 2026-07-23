@@ -1,4 +1,4 @@
-const { Proveedor, EvaluacionProveedor, Auditoria } = require('../models');
+const { Proveedor, EvaluacionProveedor, Auditoria, sequelize } = require('../models');
 const { success, created, notFound, badRequest } = require('../utils/responses');
 
 async function listar(req, res) {
@@ -80,17 +80,27 @@ async function completar(req, res) {
   }
 
   const datosAnteriores = evaluacion.toJSON();
-  const hoy = new Date().toISOString().slice(0, 10);
-  await evaluacion.update({
-    estado: 'completada', puntaje: puntajeNumerico, observaciones: observaciones || null, fechaRealizada: hoy,
-  });
+  // La conexión a la BD está fijada a '-05:00' (Bogotá) en config/database.js:18.
+  // Restar ese mismo offset (5h) al instante UTC actual y tomar su fecha UTC
+  // equivale a la fecha calendario en Bogotá, sin importar la zona horaria del
+  // proceso de Node — evita que `completar` calcule "hoy" como el día
+  // siguiente durante las horas UTC 00:00-04:59 (19:00-23:59 hora Bogotá).
+  const hoy = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const proveedor = await Proveedor.findByPk(evaluacion.proveedorId);
+
   const proximaFecha = new Date(`${hoy}T00:00:00`);
   proximaFecha.setFullYear(proximaFecha.getFullYear() + 1);
-  await proveedor.update({
-    fechaUltimaEvaluacion: hoy,
-    fechaProximaEvaluacion: proximaFecha.toISOString().slice(0, 10),
+
+  await sequelize.transaction(async (t) => {
+    await evaluacion.update({
+      estado: 'completada', puntaje: puntajeNumerico, observaciones: observaciones || null, fechaRealizada: hoy,
+    }, { transaction: t });
+
+    await proveedor.update({
+      fechaUltimaEvaluacion: hoy,
+      fechaProximaEvaluacion: proximaFecha.toISOString().slice(0, 10),
+    }, { transaction: t });
   });
 
   await Auditoria.registrar({
