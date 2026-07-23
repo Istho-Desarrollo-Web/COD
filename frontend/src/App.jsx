@@ -16,6 +16,7 @@ import SolicitudesListado from './pages/solicitudes/SolicitudesListado';
 import SolicitudDetalle from './pages/solicitudes/SolicitudDetalle';
 import ProveedoresListado from './pages/proveedores/ProveedoresListado';
 import ProveedorDetalle from './pages/proveedores/ProveedorDetalle';
+import EvaluacionesListado from './pages/proveedores/EvaluacionesListado';
 import ProximamentePage from './pages/proximamente/ProximamentePage';
 import AdministracionInicio from './pages/administracion/AdministracionInicio';
 import UsuariosListado from './pages/administracion/UsuariosListado';
@@ -120,6 +121,14 @@ function App() {
                   element={
                     <PermissionRoute modulo="proveedores" accion="ver">
                       <ProveedorDetalle />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/proveedores/evaluaciones"
+                  element={
+                    <PermissionRoute modulo="proveedores" accion="evaluar">
+                      <EvaluacionesListado />
                     </PermissionRoute>
                   }
                 />
