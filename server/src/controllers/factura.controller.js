@@ -1,4 +1,4 @@
-const { Solicitud, Factura, Auditoria } = require('../models');
+const { Solicitud, Factura, Auditoria, sequelize } = require('../models');
 const { success, created, notFound, badRequest, forbidden } = require('../utils/responses');
 const { guardarArchivo, obtenerRutaAbsoluta } = require('../services/almacenamiento.service');
 const { tieneVisibilidadAmplia } = require('../utils/visibilidadSolicitud');
@@ -35,11 +35,28 @@ async function facturar(req, res) {
   if (facturaExistente) return badRequest(res, 'Esta solicitud ya tiene una factura registrada');
 
   const { ruta } = guardarArchivo(req.file, `solicitudes/${solicitud.id}`);
-  const factura = await Factura.create({
-    solicitudId: solicitud.id, numero, monto, fechaPago, facturaS3Key: ruta,
-  });
-  await solicitud.update({ estado: 'cerrada' });
 
+  let factura;
+  try {
+    factura = await sequelize.transaction(async (t) => {
+      const nuevaFactura = await Factura.create(
+        { solicitudId: solicitud.id, numero, monto, fechaPago, facturaS3Key: ruta },
+        { transaction: t }
+      );
+      await solicitud.update({ estado: 'cerrada' }, { transaction: t });
+      return nuevaFactura;
+    });
+  } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return badRequest(res, 'Esta solicitud ya tiene una factura registrada');
+    }
+    throw error;
+  }
+
+  await Auditoria.registrar({
+    tabla: 'facturas', registroId: factura.id, accion: 'crear',
+    usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto, datosNuevos: factura.toJSON(),
+  });
   await Auditoria.registrar({
     tabla: 'solicitudes', registroId: solicitud.id, accion: 'actualizar',
     usuarioId: req.user.id, usuarioNombre: req.user.nombreCompleto,
