@@ -107,11 +107,46 @@ describe('evaluacionProveedor.job', () => {
     expect(evaluacion).not.toBeNull();
     expect(evaluacion.fechaProgramada).not.toBe(fechaProximaEvaluacion);
 
-    const diffDias = Math.round(
-      (new Date(`${evaluacion.fechaProgramada}T00:00:00Z`) - new Date(`${fechaProximaEvaluacion}T00:00:00Z`))
+    // El margen se mide contra "hoy" (no contra fechaProximaEvaluacion): el
+    // job calcula fechaProgramada = hoy + 30 días, así que bajo operación
+    // normal (fechaProximaEvaluacion ~1 día atrás) el resultado ronda 30-31
+    // días desde esa fecha, y ~30 días desde hoy.
+    const diffDesdeHoy = Math.round(
+      (new Date(`${evaluacion.fechaProgramada}T00:00:00Z`) - new Date(`${fechaEnDias(0)}T00:00:00Z`))
         / (24 * 60 * 60 * 1000)
     );
-    expect(diffDias).toBe(30);
+    expect(diffDesdeHoy).toBeGreaterThanOrEqual(29);
+    expect(diffDesdeHoy).toBeLessThanOrEqual(31);
+  });
+
+  it('con fechaProximaEvaluacion muy atrasada (downtime prolongado), la evaluación creada igual tiene margen completo desde hoy', async () => {
+    // Simula un job que no corrió por más de 30 días (o una
+    // fechaProximaEvaluacion sembrada/editada manualmente muy en el pasado).
+    const fechaProximaEvaluacion = fechaEnDias(-60);
+    const proveedor = await Proveedor.create({
+      tipo: 'proveedor', documentoIdentificacion: `938${Date.now()}`, razonSocial: 'Job Evaluación Atrasada SAS',
+      estado: 'activo', fechaProximaEvaluacion,
+    });
+
+    await ejecutar();
+
+    const evaluacion = await EvaluacionProveedor.findOne({ where: { proveedorId: proveedor.id } });
+    expect(evaluacion).not.toBeNull();
+    expect(evaluacion.estado).toBe('pendiente');
+
+    // Si el margen se basara en fechaProximaEvaluacion (el fix anterior),
+    // fechaProgramada sería fechaProximaEvaluacion + 30 días = hoy - 30 días,
+    // es decir, ya vencida al nacer. Con el fix basado en "hoy", debe quedar
+    // en el futuro y con el margen completo de ~30 días desde hoy.
+    const hoyStr = fechaEnDias(0);
+    expect(evaluacion.fechaProgramada > hoyStr).toBe(true);
+
+    const diffDesdeHoy = Math.round(
+      (new Date(`${evaluacion.fechaProgramada}T00:00:00Z`) - new Date(`${hoyStr}T00:00:00Z`))
+        / (24 * 60 * 60 * 1000)
+    );
+    expect(diffDesdeHoy).toBeGreaterThanOrEqual(29);
+    expect(diffDesdeHoy).toBeLessThanOrEqual(31);
   });
 
   it('al marcar vencida una evaluación, reprograma fechaProximaEvaluacion del proveedor ~30 días adelante', async () => {

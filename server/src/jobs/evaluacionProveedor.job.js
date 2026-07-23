@@ -56,7 +56,12 @@ async function ejecutar() {
           // Da DIAS_GRACIA_EVALUACION dias de margen real antes de que pueda
           // marcarse vencida, en vez de nacer ya vencida (antes: fechaProgramada
           // = fechaProximaEvaluacion, que ya habia pasado).
-          fechaProgramada: comoFechaBogota(new Date(fechaProxima.getTime() + DIAS_GRACIA_EVALUACION * DIA_MS)),
+          // Se basa en "hoy" (no en fechaProxima) para garantizar el margen
+          // completo de DIAS_GRACIA_EVALUACION dias incluso si el job no corrio
+          // por un periodo prolongado y fechaProximaEvaluacion quedo muy
+          // atrasada - de lo contrario la evaluacion podria nacer ya vencida
+          // otra vez (hallazgo de revision, caso de downtime extendido).
+          fechaProgramada: comoFechaBogota(new Date(hoy.getTime() + DIAS_GRACIA_EVALUACION * DIA_MS)),
           estado: 'pendiente',
         });
         creadasPendientes += 1;
