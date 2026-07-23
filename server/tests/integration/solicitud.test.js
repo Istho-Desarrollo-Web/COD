@@ -1,6 +1,6 @@
 const { sequelize } = require('../../src/config/database');
 const { createMigrator } = require('../../src/config/migrator');
-const { Area, TipoSolicitud, NivelAprobacion, Solicitud, Cotizacion, SolicitudAprobacion, Usuario, Rol, Proveedor, SolicitudComentario } = require('../../src/models');
+const { Area, TipoSolicitud, NivelAprobacion, Solicitud, Cotizacion, SolicitudAprobacion, Usuario, Rol, Proveedor, SolicitudComentario, Factura } = require('../../src/models');
 const seedRolesPermisos = require('../../src/scripts/seedRolesPermisos');
 const seedNivelesAprobacion = require('../../src/scripts/seedNivelesAprobacion');
 
@@ -69,7 +69,7 @@ describe('Solicitud workflow tables', () => {
 
 describe('SolicitudComentario', () => {
   it('vincula un comentario a una Solicitud y a un Usuario', async () => {
-    const area = await Area.create({ nombre: 'Comentario Modelo', codigo: `COMENTMODELO${Date.now()}` });
+    const area = await Area.create({ nombre: 'Comentario Modelo', codigo: `COM${Date.now()}` });
     const tipo = await TipoSolicitud.findOne({ where: { nombre: 'compra' } });
     const solicitante = await Usuario.unscoped().findOne({ where: { username: 'admin' } });
 
@@ -85,5 +85,32 @@ describe('SolicitudComentario', () => {
 
     const conSolicitud = await SolicitudComentario.findByPk(comentario.id, { include: Solicitud });
     expect(conSolicitud.Solicitud.id).toBe(solicitud.id);
+  });
+});
+
+describe('Factura', () => {
+  it('vincula una Factura 1:1 a una Solicitud e impide una segunda factura para la misma solicitud', async () => {
+    const area = await Area.create({ nombre: 'Factura Modelo', codigo: `FAC${Date.now()}` });
+    const tipo = await TipoSolicitud.findOne({ where: { nombre: 'compra' } });
+    const solicitante = await Usuario.unscoped().findOne({ where: { username: 'admin' } });
+
+    const solicitud = await Solicitud.create({
+      codigo: `SOL-FACTURA-${Date.now()}`, tipoSolicitudId: tipo.id, areaSolicitanteId: area.id,
+      solicitanteUsuarioId: solicitante.id, descripcion: 'Solicitud para facturar', estado: 'confirmada',
+    });
+
+    const factura = await Factura.create({
+      solicitudId: solicitud.id, numero: 'FAC-001', monto: 90000,
+      fechaPago: '2026-07-23', facturaS3Key: 'solicitudes/1/factura.pdf',
+    });
+
+    expect(factura.solicitudId).toBe(solicitud.id);
+
+    const conSolicitud = await Factura.findByPk(factura.id, { include: Solicitud });
+    expect(conSolicitud.Solicitud.id).toBe(solicitud.id);
+
+    await expect(
+      Factura.create({ solicitudId: solicitud.id, numero: 'FAC-002', monto: 50000, fechaPago: '2026-07-24', facturaS3Key: 'solicitudes/1/factura2.pdf' })
+    ).rejects.toThrow();
   });
 });
