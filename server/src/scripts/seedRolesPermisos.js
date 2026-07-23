@@ -30,15 +30,15 @@ const PERMISOS_POR_ROL = {
   aprobador_ejecutivo: {
     inicio: ['ver'], areas: ['ver'], documentos: ['ver'],
     solicitudes: ['ver', 'aprobar', 'confirmar'],
-    proveedores: ['ver', 'aprobar'], perfil: ['ver', 'cambiar_password'],
+    proveedores: ['ver', 'aprobar', 'evaluar'], perfil: ['ver', 'cambiar_password'],
   },
   aprobador_area: {
     inicio: ['ver'], areas: ['ver'], area_detalle: ['ver'], documentos: ['ver'],
     solicitudes: ['ver', 'aprobar', 'confirmar'],
-    proveedores: ['ver', 'aprobar'], perfil: ['ver', 'cambiar_password'],
+    proveedores: ['ver', 'aprobar', 'evaluar'], perfil: ['ver', 'cambiar_password'],
   },
   gestor_compras: {
-    inicio: ['ver'], proveedores: ['ver', 'gestionar'],
+    inicio: ['ver'], proveedores: ['ver', 'gestionar', 'evaluar'],
     solicitudes: ['ver', 'crear', 'comentar', 'cotizar', 'confirmar', 'facturar'],
     perfil: ['ver', 'cambiar_password'],
   },

@@ -5,10 +5,12 @@ const { requierePermiso } = require('../middlewares/roles');
 const { subirArchivoUnico } = require('../middlewares/upload');
 const controller = require('../controllers/proveedor.controller');
 const documentoController = require('../controllers/proveedorDocumento.controller');
+const evaluacionController = require('../controllers/evaluacionProveedor.controller');
 const asyncHandler = require('../utils/asyncHandler');
 
 router.get('/', verificarToken, requierePermiso('proveedores', 'ver'), asyncHandler(controller.listar));
 router.post('/', verificarToken, requierePermiso('proveedores', 'gestionar'), asyncHandler(controller.crear));
+router.get('/evaluaciones', verificarToken, requierePermiso('proveedores', 'evaluar'), asyncHandler(evaluacionController.listarTodas));
 router.get('/:id', verificarToken, requierePermiso('proveedores', 'ver'), asyncHandler(controller.obtener));
 router.put('/:id', verificarToken, requierePermiso('proveedores', 'gestionar'), asyncHandler(controller.editar));
 router.delete('/:id', verificarToken, requierePermiso('proveedores', 'eliminar'), asyncHandler(controller.eliminar));
@@ -20,5 +22,10 @@ router.get('/:id/documentos', verificarToken, requierePermiso('proveedores', 've
 router.post('/:id/documentos', verificarToken, requierePermiso('proveedores', 'gestionar'), subirArchivoUnico, asyncHandler(documentoController.crear));
 router.get('/:id/documentos/:docId/descargar', verificarToken, requierePermiso('proveedores', 'ver'), asyncHandler(documentoController.descargar));
 router.delete('/:id/documentos/:docId', verificarToken, requierePermiso('proveedores', 'gestionar'), asyncHandler(documentoController.eliminar));
+
+router.get('/:id/evaluaciones', verificarToken, requierePermiso('proveedores', 'ver'), asyncHandler(evaluacionController.listar));
+router.post('/:id/evaluaciones', verificarToken, requierePermiso('proveedores', 'evaluar'), asyncHandler(evaluacionController.crear));
+router.post('/:id/evaluaciones/:evaluacionId/iniciar', verificarToken, requierePermiso('proveedores', 'evaluar'), asyncHandler(evaluacionController.iniciar));
+router.post('/:id/evaluaciones/:evaluacionId/completar', verificarToken, requierePermiso('proveedores', 'evaluar'), asyncHandler(evaluacionController.completar));
 
 module.exports = router;
