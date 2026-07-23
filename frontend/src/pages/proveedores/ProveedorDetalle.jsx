@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useSnackbar } from 'notistack';
-import { ArrowLeft, Download, Trash2, Upload, Truck, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Download, Trash2, Upload, Truck, CheckCircle, XCircle, PlayCircle, Plus } from 'lucide-react';
 import proveedorService from '../../api/proveedor.service';
 import requisitoProveedorService from '../../api/requisitoProveedor.service';
 import proveedorDocumentoService from '../../api/proveedorDocumento.service';
+import evaluacionProveedorService from '../../api/evaluacionProveedor.service';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
@@ -35,6 +36,7 @@ export default function ProveedorDetalle() {
   const [requisitos, setRequisitos] = useState([]);
   const [documentos, setDocumentos] = useState([]);
   const [archivoError, setArchivoError] = useState(null);
+  const [evaluaciones, setEvaluaciones] = useState([]);
 
   const {
     register,
@@ -47,6 +49,18 @@ export default function ProveedorDetalle() {
     register: registerSubida,
     handleSubmit: handleSubmitSubida,
     reset: resetSubida,
+  } = useForm();
+
+  const {
+    register: registerProgramar,
+    handleSubmit: handleSubmitProgramar,
+    reset: resetProgramar,
+  } = useForm();
+
+  const {
+    register: registerCompletar,
+    handleSubmit: handleSubmitCompletar,
+    reset: resetCompletar,
   } = useForm();
 
   async function cargarProveedor() {
@@ -94,6 +108,20 @@ export default function ProveedorDetalle() {
 
   useEffect(() => {
     cargarDocumentos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function cargarEvaluaciones() {
+    try {
+      const data = await evaluacionProveedorService.listar(id);
+      setEvaluaciones(data);
+    } catch {
+      setEvaluaciones([]);
+    }
+  }
+
+  useEffect(() => {
+    cargarEvaluaciones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -205,6 +233,40 @@ export default function ProveedorDetalle() {
     }
   }
 
+  async function onProgramarEvaluacion(valores) {
+    try {
+      await evaluacionProveedorService.crear(id, { fechaProgramada: valores.fechaProgramada });
+      enqueueSnackbar('Evaluación programada', { variant: 'success' });
+      resetProgramar();
+      await cargarEvaluaciones();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo programar la evaluación', { variant: 'error' });
+    }
+  }
+
+  async function onIniciarEvaluacion(evaluacionId) {
+    try {
+      await evaluacionProveedorService.iniciar(id, evaluacionId);
+      enqueueSnackbar('Evaluación iniciada', { variant: 'success' });
+      await cargarEvaluaciones();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo iniciar la evaluación', { variant: 'error' });
+    }
+  }
+
+  async function onCompletarEvaluacion(evaluacionId, valores) {
+    try {
+      await evaluacionProveedorService.completar(id, evaluacionId, {
+        puntaje: valores.puntaje, observaciones: valores.observaciones || undefined,
+      });
+      enqueueSnackbar('Evaluación completada', { variant: 'success' });
+      resetCompletar();
+      await cargarEvaluaciones();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo completar la evaluación', { variant: 'error' });
+    }
+  }
+
   if (cargando) return <p className="text-sm text-slate-500 dark:text-slate-400">Cargando...</p>;
 
   if (!proveedor) {
@@ -224,6 +286,7 @@ export default function ProveedorDetalle() {
   }
 
   const requisitosAplicables = requisitos.filter((requisito) => requisitoAplica(proveedor.criticidad, requisito.criticidadMinima));
+  const hayEvaluacionActiva = evaluaciones.some((e) => ['pendiente', 'en_proceso'].includes(e.estado));
 
   function coberturaDeRequisito(requisitoId) {
     const documento = documentos.find((doc) => doc.requisitoId === requisitoId);
@@ -264,6 +327,14 @@ export default function ProveedorDetalle() {
             className={`px-6 py-4 text-sm font-medium ${tabActiva === 'expediente' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}
           >
             Expediente documental
+          </button>
+          <button
+            role="tab"
+            aria-selected={tabActiva === 'evaluaciones'}
+            onClick={() => setTabActiva('evaluaciones')}
+            className={`px-6 py-4 text-sm font-medium ${tabActiva === 'evaluaciones' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}
+          >
+            Evaluaciones
           </button>
         </div>
 
@@ -406,6 +477,61 @@ export default function ProveedorDetalle() {
 
                   <Button icon={Upload} onClick={handleSubmitSubida(onSubirDocumento)}>
                     Subir documento
+                  </Button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {tabActiva === 'evaluaciones' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Historial de evaluaciones</h3>
+                {evaluaciones.length === 0 ? (
+                  <p className="text-sm text-slate-400 dark:text-slate-500">Sin evaluaciones todavía.</p>
+                ) : (
+                  <ul className="divide-y divide-gray-100 dark:divide-slate-700">
+                    {evaluaciones.map((evaluacion) => (
+                      <li key={evaluacion.id} className="py-3">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          <div>
+                            <p className="text-sm text-slate-700 dark:text-slate-200">
+                              Periodo {evaluacion.periodo} — programada {evaluacion.fechaProgramada}
+                              {evaluacion.puntaje != null && ` — puntaje ${evaluacion.puntaje}`}
+                            </p>
+                            {evaluacion.observaciones && <p className="text-xs text-slate-400 dark:text-slate-500">{evaluacion.observaciones}</p>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <StatusChip status={evaluacion.estado} />
+                            {evaluacion.estado === 'pendiente' && tienePermiso('proveedores', 'evaluar') && (
+                              <Button variant="outline" size="sm" icon={PlayCircle} onClick={() => onIniciarEvaluacion(evaluacion.id)}>
+                                Iniciar
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {evaluacion.estado === 'en_proceso' && tienePermiso('proveedores', 'evaluar') && (
+                          <form className="space-y-4 pt-4 mt-3 border-t border-gray-100 dark:border-slate-700">
+                            <Input label="Puntaje (0-100)" type="number" {...registerCompletar('puntaje', { required: true, min: 0, max: 100 })} />
+                            <Input label="Observaciones" {...registerCompletar('observaciones')} />
+                            <Button icon={CheckCircle} onClick={handleSubmitCompletar((valores) => onCompletarEvaluacion(evaluacion.id, valores))}>
+                              Completar evaluación
+                            </Button>
+                          </form>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {tienePermiso('proveedores', 'evaluar') && !hayEvaluacionActiva && (
+                <form className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Programar evaluación</h3>
+                  <Input label="Fecha programada" type="date" {...registerProgramar('fechaProgramada', { required: true })} />
+                  <Button icon={Plus} onClick={handleSubmitProgramar(onProgramarEvaluacion)}>
+                    Programar evaluación
                   </Button>
                 </form>
               )}

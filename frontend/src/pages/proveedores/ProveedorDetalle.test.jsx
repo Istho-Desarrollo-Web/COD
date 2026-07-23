@@ -6,11 +6,13 @@ import ProveedorDetalle from './ProveedorDetalle';
 import proveedorService from '../../api/proveedor.service';
 import requisitoProveedorService from '../../api/requisitoProveedor.service';
 import proveedorDocumentoService from '../../api/proveedorDocumento.service';
+import evaluacionProveedorService from '../../api/evaluacionProveedor.service';
 import { useAuth } from '../../context/AuthContext';
 
 vi.mock('../../api/proveedor.service');
 vi.mock('../../api/requisitoProveedor.service');
 vi.mock('../../api/proveedorDocumento.service');
+vi.mock('../../api/evaluacionProveedor.service');
 vi.mock('../../context/AuthContext');
 
 const PROVEEDOR = { id: 1, razonSocial: 'Insumos ABC', documentoIdentificacion: '900123456', criticidad: 'relevante', categoria: 'insumos', estado: 'activo' };
@@ -40,6 +42,7 @@ describe('ProveedorDetalle', () => {
     proveedorService.obtener.mockResolvedValue(PROVEEDOR);
     requisitoProveedorService.listar.mockResolvedValue(REQUISITOS);
     proveedorDocumentoService.listar.mockResolvedValue([]);
+    evaluacionProveedorService.listar.mockResolvedValue([]);
   });
 
   it('shows the proveedor info', async () => {
@@ -206,5 +209,51 @@ describe('ProveedorDetalle', () => {
     expect(screen.queryByRole('button', { name: 'Aprobar registro' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Aprobar requisitos' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
+  });
+
+  it('programs an evaluación when there is no active one', async () => {
+    evaluacionProveedorService.crear.mockResolvedValue({ id: 1, estado: 'pendiente' });
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+    await userEvent.click(screen.getByRole('tab', { name: 'Evaluaciones' }));
+
+    await userEvent.type(screen.getByLabelText('Fecha programada'), '2026-12-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Programar evaluación' }));
+
+    await waitFor(() => expect(evaluacionProveedorService.crear).toHaveBeenCalledWith('1', { fechaProgramada: '2026-12-01' }));
+  });
+
+  it('hides "Programar evaluación" when there is already a pendiente/en_proceso evaluación', async () => {
+    evaluacionProveedorService.listar.mockResolvedValue([{ id: 1, periodo: 2026, fechaProgramada: '2026-12-01', puntaje: null, observaciones: null, estado: 'pendiente' }]);
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+    await userEvent.click(screen.getByRole('tab', { name: 'Evaluaciones' }));
+
+    await screen.findByText(/Periodo 2026/);
+    expect(screen.queryByRole('button', { name: 'Programar evaluación' })).not.toBeInTheDocument();
+  });
+
+  it('starts a pendiente evaluación', async () => {
+    evaluacionProveedorService.listar.mockResolvedValue([{ id: 1, periodo: 2026, fechaProgramada: '2026-12-01', puntaje: null, observaciones: null, estado: 'pendiente' }]);
+    evaluacionProveedorService.iniciar.mockResolvedValue({ id: 1, estado: 'en_proceso' });
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+    await userEvent.click(screen.getByRole('tab', { name: 'Evaluaciones' }));
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Iniciar' }));
+    await waitFor(() => expect(evaluacionProveedorService.iniciar).toHaveBeenCalledWith('1', 1));
+  });
+
+  it('completes an en_proceso evaluación with a puntaje', async () => {
+    evaluacionProveedorService.listar.mockResolvedValue([{ id: 1, periodo: 2026, fechaProgramada: '2026-12-01', puntaje: null, observaciones: null, estado: 'en_proceso' }]);
+    evaluacionProveedorService.completar.mockResolvedValue({ id: 1, estado: 'completada', puntaje: 85 });
+    renderPagina();
+    await screen.findByText('Insumos ABC');
+    await userEvent.click(screen.getByRole('tab', { name: 'Evaluaciones' }));
+
+    await userEvent.type(screen.getByLabelText('Puntaje (0-100)'), '85');
+    await userEvent.click(screen.getByRole('button', { name: 'Completar evaluación' }));
+
+    await waitFor(() => expect(evaluacionProveedorService.completar).toHaveBeenCalledWith('1', 1, { puntaje: '85', observaciones: undefined }));
   });
 });
