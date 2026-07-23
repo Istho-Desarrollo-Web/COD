@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useSnackbar } from 'notistack';
-import { ArrowLeft, CheckCircle, XCircle, Send, Upload, Ban, ClipboardList, Star } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Send, Upload, Ban, ClipboardList, Star, FileText } from 'lucide-react';
 import solicitudService from '../../api/solicitud.service';
 import cotizacionService from '../../api/cotizacion.service';
 import solicitudComentarioService from '../../api/solicitudComentario.service';
 import proveedorService from '../../api/proveedor.service';
+import facturaService from '../../api/factura.service';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
@@ -33,10 +34,13 @@ export default function SolicitudDetalle() {
   const [proveedores, setProveedores] = useState([]);
   const [archivoErrorCotizacion, setArchivoErrorCotizacion] = useState(null);
   const [archivoErrorConfirmar, setArchivoErrorConfirmar] = useState(null);
+  const [factura, setFactura] = useState(null);
+  const [archivoErrorFactura, setArchivoErrorFactura] = useState(null);
 
   const { register: registerCotizacion, handleSubmit: handleSubmitCotizacion, reset: resetCotizacion } = useForm();
   const { register: registerComentario, handleSubmit: handleSubmitComentario, reset: resetComentario } = useForm();
   const { register: registerConfirmar, handleSubmit: handleSubmitConfirmar, reset: resetConfirmar } = useForm();
+  const { register: registerFactura, handleSubmit: handleSubmitFactura, reset: resetFactura } = useForm();
 
   async function cargarSolicitud() {
     setCargando(true);
@@ -80,6 +84,20 @@ export default function SolicitudDetalle() {
 
   useEffect(() => {
     cargarComentarios();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function cargarFactura() {
+    try {
+      const data = await facturaService.obtener(id);
+      setFactura(data);
+    } catch {
+      setFactura(null);
+    }
+  }
+
+  useEffect(() => {
+    cargarFactura();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -164,6 +182,40 @@ export default function SolicitudDetalle() {
       await cargarSolicitud();
     } catch (error) {
       enqueueSnackbar(error?.message || 'No se pudo confirmar la solicitud', { variant: 'error' });
+    }
+  }
+
+  async function onFacturar(valores) {
+    const archivo = valores.archivo?.[0];
+    const errorArchivo = validarArchivo(archivo);
+    if (errorArchivo) {
+      setArchivoErrorFactura(errorArchivo);
+      return;
+    }
+    setArchivoErrorFactura(null);
+
+    const formData = new FormData();
+    formData.append('numero', valores.numero);
+    formData.append('monto', valores.monto);
+    formData.append('fechaPago', valores.fechaPago);
+    formData.append('archivo', archivo);
+
+    try {
+      await facturaService.registrar(id, formData);
+      enqueueSnackbar('Factura registrada', { variant: 'success' });
+      resetFactura();
+      await cargarSolicitud();
+      await cargarFactura();
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo registrar la factura', { variant: 'error' });
+    }
+  }
+
+  async function onDescargarFactura() {
+    try {
+      await facturaService.descargar(id);
+    } catch (error) {
+      enqueueSnackbar(error?.message || 'No se pudo descargar la factura', { variant: 'error' });
     }
   }
 
@@ -340,6 +392,50 @@ export default function SolicitudDetalle() {
                     Confirmar
                   </Button>
                 </form>
+              )}
+
+              {solicitud.estado === 'confirmada' && tienePermiso('solicitudes', 'facturar') && (
+                <form className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Registrar factura</h3>
+                  <Input label="Número de factura" {...registerFactura('numero', { required: true })} />
+                  <Input label="Monto" type="number" {...registerFactura('monto', { required: true })} />
+                  <Input label="Fecha de pago" type="date" {...registerFactura('fechaPago', { required: true })} />
+                  <div>
+                    <label htmlFor="factura-archivo" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                      Archivo de la factura *
+                    </label>
+                    <input id="factura-archivo" type="file" accept={TIPOS_PERMITIDOS_ACCEPT} className="w-full text-sm" {...registerFactura('archivo', { required: true })} />
+                    {archivoErrorFactura && (
+                      <p role="alert" className="text-xs text-red-500 mt-1">
+                        {archivoErrorFactura}
+                      </p>
+                    )}
+                  </div>
+                  <Button icon={Upload} onClick={handleSubmitFactura(onFacturar)}>
+                    Registrar factura
+                  </Button>
+                </form>
+              )}
+
+              {solicitud.estado === 'cerrada' && factura && (
+                <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Factura</h3>
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Número de factura</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-200">{factura.numero}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Monto</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-200">{factura.monto}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Fecha de pago</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-200">{factura.fechaPago}</p>
+                  </div>
+                  <Button variant="outline" size="sm" icon={FileText} onClick={onDescargarFactura}>
+                    Descargar
+                  </Button>
+                </div>
               )}
             </div>
           )}

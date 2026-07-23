@@ -7,12 +7,14 @@ import solicitudService from '../../api/solicitud.service';
 import cotizacionService from '../../api/cotizacion.service';
 import solicitudComentarioService from '../../api/solicitudComentario.service';
 import proveedorService from '../../api/proveedor.service';
+import facturaService from '../../api/factura.service';
 import { useAuth } from '../../context/AuthContext';
 
 vi.mock('../../api/solicitud.service');
 vi.mock('../../api/cotizacion.service');
 vi.mock('../../api/solicitudComentario.service');
 vi.mock('../../api/proveedor.service');
+vi.mock('../../api/factura.service');
 vi.mock('../../context/AuthContext');
 
 const SOLICITUD = {
@@ -40,6 +42,7 @@ describe('SolicitudDetalle', () => {
     cotizacionService.listar.mockResolvedValue([]);
     solicitudComentarioService.listar.mockResolvedValue([]);
     proveedorService.listar.mockResolvedValue([]);
+    facturaService.obtener.mockResolvedValue(null);
   });
 
   it('shows the solicitud info', async () => {
@@ -174,5 +177,38 @@ describe('SolicitudDetalle', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Comentarios' }));
 
     expect(screen.queryByRole('button', { name: 'Comentar' })).not.toBeInTheDocument();
+  });
+
+  it('shows the "Registrar factura" form only when confirmada, and registra la factura', async () => {
+    solicitudService.obtener.mockResolvedValue({ ...SOLICITUD, estado: 'confirmada' });
+    facturaService.registrar.mockResolvedValue({ id: 9, numero: 'FAC-2026-001' });
+    renderPagina();
+    await screen.findByText('SOL-2026-1');
+
+    await userEvent.type(screen.getByLabelText('Número de factura'), 'FAC-2026-001');
+    await userEvent.type(screen.getByLabelText('Monto'), '500000');
+    await userEvent.type(screen.getByLabelText('Fecha de pago'), '2026-07-23');
+    const archivo = new File(['contenido'], 'factura.pdf', { type: 'application/pdf' });
+    await userEvent.upload(screen.getByLabelText('Archivo de la factura *'), archivo);
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar factura' }));
+
+    await waitFor(() => expect(facturaService.registrar).toHaveBeenCalledWith('1', expect.any(FormData)));
+  });
+
+  it('hides the "Registrar factura" form when the solicitud is not confirmada', async () => {
+    renderPagina();
+    await screen.findByText('SOL-2026-1');
+    expect(screen.queryByRole('button', { name: 'Registrar factura' })).not.toBeInTheDocument();
+  });
+
+  it('shows the factura read-only block and downloads it when cerrada', async () => {
+    solicitudService.obtener.mockResolvedValue({ ...SOLICITUD, estado: 'cerrada' });
+    facturaService.obtener.mockResolvedValue({ id: 9, numero: 'FAC-2026-001', monto: 500000, fechaPago: '2026-07-23' });
+    renderPagina();
+    await screen.findByText('SOL-2026-1');
+
+    expect(await screen.findByText('FAC-2026-001')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Descargar' }));
+    expect(facturaService.descargar).toHaveBeenCalledWith('1');
   });
 });
