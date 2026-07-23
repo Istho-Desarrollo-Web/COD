@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
-import { Plus, Truck, AlertCircle } from 'lucide-react';
+import { Plus, Truck, AlertCircle, ClipboardCheck } from 'lucide-react';
 import proveedorService from '../../api/proveedor.service';
 import areaService from '../../api/area.service';
 import { useAuth } from '../../context/AuthContext';
@@ -148,6 +148,11 @@ export default function ProveedoresListado() {
         <h2 className="text-xl font-display font-semibold text-slate-800 dark:text-slate-100">Proveedores y contratistas</h2>
         <div className="flex items-center gap-3">
           {!esVistaMovil && <ViewToggle modo={modo} onChange={setModo} />}
+          {tienePermiso('proveedores', 'evaluar') && (
+            <Button variant="outline" icon={ClipboardCheck} onClick={() => navigate('/proveedores/evaluaciones')}>
+              Ver evaluaciones
+            </Button>
+          )}
           {tienePermiso('proveedores', 'gestionar') && (
             <Button icon={Plus} onClick={() => setModalAbierto(true)}>
               Crear proveedor

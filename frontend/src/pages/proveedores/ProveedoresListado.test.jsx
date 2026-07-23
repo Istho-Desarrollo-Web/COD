@@ -18,6 +18,7 @@ function renderPagina() {
         <Routes>
           <Route path="/proveedores" element={<ProveedoresListado />} />
           <Route path="/proveedores/:id" element={<p>Detalle de Proveedor</p>} />
+          <Route path="/proveedores/evaluaciones" element={<p>Listado de Evaluaciones</p>} />
         </Routes>
       </SnackbarProvider>
     </MemoryRouter>
@@ -90,5 +91,22 @@ describe('ProveedoresListado', () => {
 
     await userEvent.click(await screen.findByText('Insumos ABC'));
     expect(await screen.findByText('Detalle de Proveedor')).toBeInTheDocument();
+  });
+
+  it('navigates to the evaluaciones listado when "Ver evaluaciones" is clicked', async () => {
+    proveedorService.listar.mockResolvedValue([]);
+    renderPagina();
+
+    await screen.findByText('Sin proveedores todavía');
+    await userEvent.click(screen.getByText('Ver evaluaciones'));
+    expect(await screen.findByText('Listado de Evaluaciones')).toBeInTheDocument();
+  });
+
+  it('hides "Ver evaluaciones" when the user lacks the evaluar permission', async () => {
+    useAuth.mockReturnValue({ tienePermiso: () => false });
+    proveedorService.listar.mockResolvedValue([]);
+    renderPagina();
+    await screen.findByText('Sin proveedores todavía');
+    expect(screen.queryByText('Ver evaluaciones')).not.toBeInTheDocument();
   });
 });
