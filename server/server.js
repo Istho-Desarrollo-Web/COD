@@ -6,6 +6,7 @@ const { sequelize, connectWithRetry } = require('./src/config/database');
 const { createMigrator } = require('./src/config/migrator');
 const { programar: programarRecalculoEstados } = require('./src/jobs/recalcularEstadosDocumentos.job');
 const { programar: programarPurgaLogs } = require('./src/jobs/logServidor.job');
+const { programar: programarEvaluacionesProveedor } = require('./src/jobs/evaluacionProveedor.job');
 const { error, conflict, serverError, badRequest } = require('./src/utils/responses');
 const { registrarLogsRequest } = require('./src/middlewares/logServidor.middleware');
 const { registrar: registrarLogServidor } = require('./src/services/logServidor.service');
@@ -101,6 +102,7 @@ if (require.main === module) {
     .then(() => {
       programarRecalculoEstados();
       programarPurgaLogs();
+      programarEvaluacionesProveedor();
       app.listen(PORT, () => {
         const entorno = process.env.NODE_ENV || 'development';
         const baseUrl = process.env.APP_URL || (entorno !== 'production' ? `http://localhost:${PORT}` : null);

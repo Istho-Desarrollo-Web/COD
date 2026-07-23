@@ -11,7 +11,8 @@
     "migration:down": "node src/scripts/migrate-cli.js down",
     "migration:status": "node src/scripts/migrate-cli.js status",
     "job:recalcular-estados": "node src/scripts/ejecutarRecalculoEstados.js",
-    "job:purgar-logs": "node src/scripts/purgarLogsServidor.js"
+    "job:purgar-logs": "node src/scripts/purgarLogsServidor.js",
+    "job:evaluar-proveedores": "node src/scripts/ejecutarEvaluacionesProveedor.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
