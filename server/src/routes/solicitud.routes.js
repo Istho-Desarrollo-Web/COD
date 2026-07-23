@@ -6,6 +6,7 @@ const { subirArchivoUnico } = require('../middlewares/upload');
 const controller = require('../controllers/solicitud.controller');
 const cotizacionController = require('../controllers/cotizacion.controller');
 const comentarioController = require('../controllers/solicitudComentario.controller');
+const facturaController = require('../controllers/factura.controller');
 const asyncHandler = require('../utils/asyncHandler');
 
 router.get('/', verificarToken, requierePermiso('solicitudes', 'ver'), asyncHandler(controller.listar));
@@ -24,5 +25,9 @@ router.post('/:id/cotizaciones/:cotizacionId/seleccionar', verificarToken, requi
 
 router.get('/:id/comentarios', verificarToken, requierePermiso('solicitudes', 'ver'), asyncHandler(comentarioController.listar));
 router.post('/:id/comentarios', verificarToken, requierePermiso('solicitudes', 'comentar'), asyncHandler(comentarioController.crear));
+
+router.get('/:id/factura', verificarToken, requierePermiso('solicitudes', 'ver'), asyncHandler(facturaController.obtener));
+router.post('/:id/facturar', verificarToken, requierePermiso('solicitudes', 'facturar'), subirArchivoUnico, asyncHandler(facturaController.facturar));
+router.get('/:id/factura/descargar', verificarToken, requierePermiso('solicitudes', 'ver'), asyncHandler(facturaController.descargar));
 
 module.exports = router;

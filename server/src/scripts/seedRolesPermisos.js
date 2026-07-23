@@ -39,7 +39,7 @@ const PERMISOS_POR_ROL = {
   },
   gestor_compras: {
     inicio: ['ver'], proveedores: ['ver', 'gestionar'],
-    solicitudes: ['ver', 'crear', 'comentar', 'cotizar', 'confirmar'],
+    solicitudes: ['ver', 'crear', 'comentar', 'cotizar', 'confirmar', 'facturar'],
     perfil: ['ver', 'cambiar_password'],
   },
   gestor_documental: {
